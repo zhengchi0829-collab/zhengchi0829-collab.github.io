@@ -87,3 +87,15 @@
 @media(max-width:360px) {
   .platform-card.brand-featured .platform-logo.has-brand-logo.brand-logo-contrast { width: 82px !important; height: 82px !important; min-width: 82px; }
 }
+
+/* Remove unused wide featured-logo grid column on cards 04 and 05. */
+@media (min-width: 1051px) {
+  .platform-card.brand-featured:has(.brand-logo-contrast) {
+    grid-template-columns: 28px 138px minmax(0, 1fr) 174px;
+  }
+}
+@media (min-width: 761px) and (max-width: 1050px) {
+  .platform-card.brand-featured:has(.brand-logo-contrast) {
+    grid-template-columns: 21px 115px minmax(0, 1fr) 142px;
+  }
+}
