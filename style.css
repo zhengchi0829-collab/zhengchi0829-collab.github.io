@@ -53,3 +53,37 @@
     grid-template-columns: 86px minmax(0, 1fr);
   }
 }
+
+/* Final override: featured logos 04/05 use the same 1:1 frame as other cards. */
+.platform-card.brand-featured .platform-logo.has-brand-logo.brand-logo-contrast {
+  box-sizing: border-box !important;
+  width: 112px !important;
+  height: 112px !important;
+  min-width: 112px;
+  aspect-ratio: 1 / 1 !important;
+  padding: 0 !important;
+  border-radius: 12px;
+  background: #0d1322 !important;
+  overflow: hidden !important;
+  grid-column: auto !important;
+}
+.platform-card.brand-featured .platform-logo.has-brand-logo.brand-logo-contrast img {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  object-fit: cover !important;
+  object-position: center !important;
+}
+/* Source images include margins; zoom artwork inside its square frame. */
+#platform-4 .platform-logo img { transform: scale(1.24); }
+#platform-5 .platform-logo img { transform: scale(1.32); }
+@media(max-width:1050px) {
+  .platform-card.brand-featured .platform-logo.has-brand-logo.brand-logo-contrast { width: 100px !important; height: 100px !important; min-width: 100px; }
+}
+@media(max-width:760px) {
+  .platform-card.brand-featured .platform-logo.has-brand-logo.brand-logo-contrast { width: 92px !important; height: 92px !important; min-width: 92px; }
+}
+@media(max-width:360px) {
+  .platform-card.brand-featured .platform-logo.has-brand-logo.brand-logo-contrast { width: 82px !important; height: 82px !important; min-width: 82px; }
+}
