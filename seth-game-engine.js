@@ -1,23 +1,26 @@
 /**
- * 沙海神殿 — original, local-only virtual-point simulation.
- * This module is not an ATG game and does not model any real game's results.
+ * 沙海戰神Ⅰ / 黃金神殿Ⅱ — original, local-only virtual-point games.
+ * These rules are independent and do not model any external game's results.
  * Boards use row-major indices: index = row * 6 + column.
  */
 
 export const BET_OPTIONS = Object.freeze([20, 50, 100, 200, 500]);
 export const STARTING_BALANCE = 10000;
 export const MAX_CASCADES = 6;
+export const MAX_MULTIPLIER = 20;
+export const FREE_SPINS_AWARD = 5;
+export const FREE_SPINS_COST_MULTIPLIER = 100;
 
 export const GAME_MODES = Object.freeze([
   Object.freeze({
     id: 'classic',
-    name: '經典模式',
-    description: '六欄五列自由連消，以固定一倍計算每回合獲得的虛擬點數。',
+    name: '沙海戰神Ⅰ',
+    description: '六欄五列自由連消，每回合抽出一、二、三或五倍，計算當回合獲得的虛擬點數。',
   }),
   Object.freeze({
     id: 'temple',
-    name: '神殿模式',
-    description: '每回合抽出一、二、三或五倍，套用於當回合連消所得的虛擬點數。',
+    name: '黃金神殿Ⅱ',
+    description: '連消可讓倍率分裂翻倍，最高二十倍；得分回合結束時有機會鎖定倍率供接下來兩局使用。',
   }),
 ]);
 
@@ -34,7 +37,9 @@ export const SYMBOLS = Object.freeze([
 const COLUMNS = 6;
 const ROWS = 5;
 const BOARD_SIZE = COLUMNS * ROWS;
-const FREE_SPINS_AWARD = 5;
+const LOCK_ROUNDS_AWARD = 2;
+const SPLIT_CHANCE = 0.2;
+const LOCK_CHANCE = 0.15;
 const ORDINARY_SYMBOLS = SYMBOLS.filter((symbol) => symbol.id !== 'seal');
 const SYMBOL_IDS = new Set(SYMBOLS.map((symbol) => symbol.id));
 const MODE_IDS = new Set(GAME_MODES.map((mode) => mode.id));
@@ -47,6 +52,10 @@ function gameError(code, message) {
 }
 
 function validateState(state) {
+  // Missing lock fields from an earlier local session are safely initialized.
+  // Supplied invalid values are rejected instead of silently repaired.
+  const lockedMultiplier = state?.lockedMultiplier === undefined ? 1 : state.lockedMultiplier;
+  const lockedRounds = state?.lockedRounds === undefined ? 0 : state.lockedRounds;
   if (!state || typeof state !== 'object'
     || !MODE_IDS.has(state.mode)
     || !BET_OPTIONS.includes(state.bet)
@@ -54,9 +63,16 @@ function validateState(state) {
       .every((value) => Number.isSafeInteger(value) && value >= 0)
     || !Array.isArray(state.board)
     || state.board.length !== BOARD_SIZE
-    || !state.board.every((symbol) => SYMBOL_IDS.has(symbol))) {
+    || !Array.from(state.board).every((symbol) => SYMBOL_IDS.has(symbol))
+    || !Number.isInteger(lockedMultiplier)
+    || lockedMultiplier < 1 || lockedMultiplier > MAX_MULTIPLIER
+    || !Number.isInteger(lockedRounds)
+    || lockedRounds < 0 || lockedRounds > LOCK_ROUNDS_AWARD
+    || (lockedRounds === 0 && lockedMultiplier !== 1)
+    || (state.mode === 'classic' && (lockedRounds !== 0 || lockedMultiplier !== 1))) {
     throw gameError('INVALID_STATE', '遊戲狀態無效，請重新開始。');
   }
+  return { ...state, lockedMultiplier, lockedRounds };
 }
 
 function defaultRandom() {
@@ -158,6 +174,8 @@ export function createGameState(mode = 'classic') {
     freeSpins: 0,
     totalWin: 0,
     round: 0,
+    lockedMultiplier: 1,
+    lockedRounds: 0,
     board: Array.from({ length: BOARD_SIZE }, (_, index) => (
       ORDINARY_SYMBOLS[(index + Math.floor(index / COLUMNS)) % ORDINARY_SYMBOLS.length].id
     )),
@@ -166,14 +184,32 @@ export function createGameState(mode = 'classic') {
 
 /** Return a separate state and board; lock the bet throughout free spins. */
 export function setBet(state, bet) {
-  validateState(state);
-  if (state.freeSpins > 0) {
+  const current = validateState(state);
+  if (current.freeSpins > 0) {
     throw gameError('FREE_SPINS_ACTIVE', '免費回合進行中，請完成後再調整每回合點數。');
   }
   if (!BET_OPTIONS.includes(bet)) {
     throw gameError('INVALID_BET', '請選擇有效的每回合點數。');
   }
-  return { ...state, bet, board: [...state.board] };
+  return { ...current, bet, board: [...current.board] };
+}
+
+/** Buy five virtual free rounds once; a purchase is not a played round. */
+export function buyFreeSpins(state) {
+  const current = validateState(state);
+  if (current.freeSpins > 0) {
+    throw gameError('FREE_SPINS_ACTIVE', '請先完成目前的免費回合，才能再次取得免費回合。');
+  }
+  const cost = current.bet * FREE_SPINS_COST_MULTIPLIER;
+  if (current.balance < cost) {
+    throw gameError('INSUFFICIENT_FUNDS', '虛擬點數不足，無法取得這組免費回合。');
+  }
+  return {
+    ...current,
+    balance: current.balance - cost,
+    freeSpins: FREE_SPINS_AWARD,
+    board: [...current.board],
+  };
 }
 
 /** Reset virtual points while keeping a recognized mode and legal bet. */
@@ -186,59 +222,93 @@ export function resetGame(state) {
 /**
  * Resolve one complete round without modifying the supplied state.
  *
- * RNG order: 30 row-major initial symbols; one multiplier draw in temple
- * mode; then each refill in column-major, top-to-bottom order.
- * Frame wins and match payouts are before the round multiplier. A terminal
- * frame always shows finalBoard with no cleared cells and zero additional win.
+ * RNG order: 30 row-major initial symbols; one base multiplier draw unless
+ * a temple lock is active; for each scoring cascade, a temple split draw
+ * followed by column-major refill draws; finally, one temple lock draw only
+ * for a scoring round that did not start with a lock.
+ * Match payouts and frame.win are base points; frame.payout is the actual
+ * amount credited at that frame's multiplier. Later splits are not retroactive.
+ * A terminal frame shows finalBoard with no clears and no additional payout.
  * hitCascadeLimit means a seventh payable cascade was actually left unplayed.
  */
 export function resolveSpin(state, { random = defaultRandom } = {}) {
-  validateState(state);
-  const usedFreeSpin = state.freeSpins > 0;
-  const charged = usedFreeSpin ? 0 : state.bet;
-  if (state.balance < charged) {
+  const current = validateState(state);
+  const usedFreeSpin = current.freeSpins > 0;
+  const charged = usedFreeSpin ? 0 : current.bet;
+  if (current.balance < charged) {
     throw gameError('INSUFFICIENT_FUNDS', '虛擬點數不足，請降低每回合點數或重新開始。');
   }
 
   const nextRandom = checkedRandom(random);
   const initialBoard = Array.from({ length: BOARD_SIZE }, () => drawSymbol(nextRandom));
-  const multiplier = state.mode === 'temple' ? drawMultiplier(nextRandom) : 1;
+  const isTemple = current.mode === 'temple';
+  const lockUsed = isTemple && current.lockedRounds > 0;
+  const initialMultiplier = lockUsed ? current.lockedMultiplier : drawMultiplier(nextRandom);
+  let multiplier = initialMultiplier;
   const sealCount = initialBoard.reduce((count, symbol) => count + (symbol === 'seal' ? 1 : 0), 0);
   const awardedFreeSpins = !usedFreeSpin && sealCount >= 4 ? FREE_SPINS_AWARD : 0;
   const frames = [];
   let board = [...initialBoard];
   let baseWin = 0;
+  let totalWin = 0;
   let cascades = 0;
 
   while (cascades < MAX_CASCADES) {
-    const matches = findMatches(board, state.bet);
+    const matches = findMatches(board, current.bet);
     if (matches.length === 0) break;
     const cleared = matches.flatMap((match) => match.cells).sort((a, b) => a - b);
     const win = matches.reduce((total, match) => total + match.payout, 0);
-    frames.push({ board: [...board], matches, cleared, win });
+    const beforeSplit = multiplier;
+    // Draw on every scoring temple cascade, even at the cap, to keep the
+    // documented per-cascade random order stable. Only an increase is a split.
+    const splitTriggered = isTemple && nextRandom() < SPLIT_CHANCE;
+    const splitBoolean = splitTriggered && multiplier < MAX_MULTIPLIER;
+    if (splitBoolean) multiplier = Math.min(MAX_MULTIPLIER, multiplier * 2);
+    const payout = win * multiplier;
+    frames.push({
+      board: [...board], matches, cleared, win,
+      initialMultiplier: beforeSplit, multiplier, payout, splitBoolean,
+    });
     baseWin += win;
+    totalWin += payout;
     board = refillBoard(board, cleared, nextRandom);
     cascades += 1;
   }
 
-  const hitCascadeLimit = cascades === MAX_CASCADES && findMatches(board, state.bet).length > 0;
+  const hitCascadeLimit = cascades === MAX_CASCADES && findMatches(board, current.bet).length > 0;
   const finalBoard = [...board];
-  frames.push({ board: [...finalBoard], matches: [], cleared: [], win: 0 });
-  const totalWin = baseWin * multiplier;
-  const balance = state.balance - charged + totalWin;
-  const accumulatedWin = state.totalWin + totalWin;
-  const round = state.round + 1;
+  frames.push({
+    board: [...finalBoard], matches: [], cleared: [], win: 0,
+    initialMultiplier: multiplier, multiplier, payout: 0, splitBoolean: false,
+  });
+
+  // Every played round consumes one existing lock, including free/no-win
+  // rounds. Its in-round splits never alter the multiplier reserved for the
+  // next locked round, and an existing lock cannot retrigger itself.
+  let lockedRounds = lockUsed ? current.lockedRounds - 1 : 0;
+  let lockedMultiplier = lockedRounds > 0 ? current.lockedMultiplier : 1;
+  const lockAwarded = isTemple && !lockUsed && totalWin > 0 && nextRandom() < LOCK_CHANCE;
+  if (lockAwarded) {
+    lockedRounds = LOCK_ROUNDS_AWARD;
+    lockedMultiplier = multiplier;
+  }
+
+  const balance = current.balance - charged + totalWin;
+  const accumulatedWin = current.totalWin + totalWin;
+  const round = current.round + 1;
   if (![balance, accumulatedWin, round].every(Number.isSafeInteger)) {
     throw gameError('INVALID_STATE', '虛擬點數已超出可計算範圍，請重新開始。');
   }
 
   return {
     state: {
-      ...state,
+      ...current,
       balance,
-      freeSpins: state.freeSpins - (usedFreeSpin ? 1 : 0) + awardedFreeSpins,
+      freeSpins: current.freeSpins - (usedFreeSpin ? 1 : 0) + awardedFreeSpins,
       totalWin: accumulatedWin,
       round,
+      lockedMultiplier,
+      lockedRounds,
       board: [...finalBoard],
     },
     initialBoard,
@@ -247,9 +317,13 @@ export function resolveSpin(state, { random = defaultRandom } = {}) {
     charged,
     usedFreeSpin,
     awardedFreeSpins,
+    initialMultiplier,
     multiplier,
     baseWin,
     totalWin,
     hitCascadeLimit,
+    lockAwarded,
+    lockUsed,
+    lockedRounds,
   };
 }

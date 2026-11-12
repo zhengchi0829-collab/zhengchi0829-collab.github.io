@@ -976,3 +976,239 @@ seth-trial .st-simulator:fullscreen .st-board-shell {
     transition: none !important;
   }
 }
+
+/* Original two-game collection: artwork, cabinet and responsive controls. */
+seth-trial { --st-gold: #f0c574; }
+seth-trial .seth-trial-section {
+  padding-block: 50px 38px;
+  border-color: #403824;
+  background: radial-gradient(ellipse at 15% 10%, #67502220, transparent 50%),
+    radial-gradient(ellipse at 95% 75%, #62489818, transparent 50%), #0a0d17;
+}
+seth-trial .st-heading { margin-bottom: 25px; align-items: center; }
+seth-trial .st-eyebrow { color: #e3bd76; letter-spacing: .18em; }
+seth-trial .st-heading h2 { font-size: clamp(28px, 3vw, 38px); letter-spacing: .02em; }
+seth-trial .st-title-dot { color: #e3bd76; }
+seth-trial .st-intro { color: #aeb4c8; }
+seth-trial .st-feature-tag { color: #ead7b4; border-color: #514632; background: #242019; }
+seth-trial .st-card-grid { gap: 22px; }
+seth-trial .st-card {
+  --st-accent: #f1cb81;
+  --st-accent-soft: #efc26b16;
+  position: relative;
+  isolation: isolate;
+  min-height: 362px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #8e6c39;
+  border-radius: 18px;
+  background: #14121a;
+  box-shadow: 0 15px 40px #0005, inset 0 0 0 3px #f2c66a10;
+}
+seth-trial .st-card-temple { --st-accent: #dfb1ff; --st-accent-soft: #bf87ef20; border-color: #8e68a7; }
+seth-trial .st-card:hover { border-color: var(--st-accent); transform: translateY(-3px); }
+seth-trial .st-card-art, seth-trial .st-card-overlay { position: absolute; inset: 0; pointer-events: none; }
+seth-trial .st-card-art {
+  z-index: -3;
+  background: url('./assets/sand-warrior.webp') center right / cover;
+  transition: transform .65s ease;
+}
+seth-trial .st-card-temple .st-card-art { background-image: url('./assets/golden-temple.webp'); }
+seth-trial .st-card:hover .st-card-art { transform: scale(1.025); }
+seth-trial .st-card-overlay {
+  z-index: -2;
+  background: linear-gradient(90deg, #080a13f5, #090b16b5 38%, #090b1610 80%),
+    linear-gradient(0deg, #090b17f5, #090b1700 80%);
+}
+seth-trial .st-card-content {
+  min-height: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 30px;
+}
+seth-trial .st-card-top { gap: 0; }
+seth-trial .st-card .st-emblem { display: none; }
+seth-trial .st-card-kicker { font-size: 10px; letter-spacing: .14em; text-shadow: 0 2px 6px #000; }
+seth-trial .st-card h3 { margin-top: 7px; color: #fff1cf; font-size: clamp(26px, 2.5vw, 34px); letter-spacing: .025em; text-shadow: 0 3px 10px #000b; }
+seth-trial .st-card-temple h3 { color: #fae9ff; }
+seth-trial .st-card-subtitle { margin-top: 8px; color: #eddbb9; font-size: 12px; letter-spacing: .05em; }
+seth-trial .st-card-description { max-width: 290px; margin-block: 14px; color: #d1c9c2; font-size: 12px; line-height: 1.8; text-shadow: 0 1px 4px #000; }
+seth-trial .st-card-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 16px; }
+seth-trial .st-card-tags span { padding: 4px 8px; border: 1px solid #d5b57c52; border-radius: 4px; color: #ead9bd; background: #090d19b8; font-size: 10px; }
+seth-trial .st-card-actions { width: min(235px, 100%); }
+seth-trial .st-play-link { width: 100%; min-height: 46px; border-color: #ffe0a2; background: linear-gradient(180deg, #ffe4a5, #dba953); color: #2d1c0b; font-size: 13px; box-shadow: 0 5px 18px #0006, inset 0 1px #fff8; }
+seth-trial .st-card-temple .st-play-link { border-color: #e9c4ff; background: linear-gradient(180deg, #eed1ff, #bd8ce0); color: #261231; }
+seth-trial .st-link-note { margin-top: 10px; color: #c9c1bc; text-align: left; font-size: 10px; text-shadow: 0 1px 4px #000; }
+seth-trial .st-source-note { margin-top: 20px; color: #8d97ad; font-size: 11px; text-align: center; line-height: 1.8; }
+seth-trial .st-source-note p { margin: 3px 0; }
+
+seth-trial .st-simulator {
+  --st-game-accent: #f2cc84;
+  --st-game-soft: #e0ae5220;
+  margin-top: 32px;
+  padding: 22px 24px 24px;
+  overflow: clip;
+  border: 1px solid #9c7942;
+  border-radius: 18px;
+  background: linear-gradient(90deg, #090e1af2, #0b101ad6 70%, #0b0e18c9), url('./assets/sand-warrior.webp') center right / cover;
+  box-shadow: 0 24px 60px #0007, inset 0 0 0 4px #b48d4214;
+}
+seth-trial .st-simulator--temple {
+  --st-game-accent: #e2b6ff;
+  --st-game-soft: #9f63ce22;
+  border-color: #9268ad;
+  background: linear-gradient(90deg, #0e0c1bf2, #130f23d9 70%, #140d20c9), url('./assets/golden-temple.webp') center right / cover;
+}
+seth-trial .st-sim-header { margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid #bc965c35; }
+seth-trial .st-sim-heading { min-width: 0; }
+seth-trial .st-sim-eyebrow { margin: 0 0 3px; color: #a9a8b7; font-size: 9px; letter-spacing: .23em; font-weight: 600; line-height: 1.4; }
+seth-trial .st-sim-title { font-size: 25px; letter-spacing: .04em; text-shadow: 0 2px 10px #000; }
+seth-trial .st-icon-button { border-color: #76684d66; background: #191e2cdd; color: #e4dece; }
+seth-trial .st-icon-button[aria-pressed='true'] { border-color: var(--st-game-accent); color: var(--st-game-accent); }
+seth-trial .st-game-layout { display: grid; grid-template-columns: minmax(0, 1fr) 278px; gap: 24px; align-items: start; }
+seth-trial .st-game-main, seth-trial .st-game-aside { min-width: 0; }
+seth-trial .st-game-aside { display: flex; flex-direction: column; gap: 14px; padding-top: 1px; }
+seth-trial .st-mode-tabs { gap: 4px; margin-bottom: 10px; border-color: #8e734344; background: #050811d9; }
+seth-trial .st-mode-tab { min-height: 34px; padding: 6px 9px; color: #b8b6c6; font-size: 12px; }
+seth-trial .st-mode-tab[aria-pressed='true'] { border-color: #bd985052; background: linear-gradient(180deg, #4b3c23, #28251e); color: #f7dca5; }
+seth-trial .st-simulator--temple .st-mode-tab[aria-pressed='true'] { border-color: #bb86d867; background: linear-gradient(180deg, #49305b, #292032); color: #f1d7ff; }
+seth-trial .st-feature-meter { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 5px 12px; max-width: 600px; min-height: 35px; margin: 0 auto 9px; padding: 6px 11px; border: 1px solid #81673655; border-radius: 7px; background: linear-gradient(90deg, #4e391f66, #111727ce); font-size: 11px; color: #d9c8a5; }
+seth-trial .st-feature-multiplier { display: inline-flex; align-items: center; gap: 7px; }
+seth-trial .st-feature-multiplier strong { color: var(--st-game-accent); font-size: 20px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+seth-trial .st-feature-lock { color: #c7b1e3; font-size: 10px; }
+seth-trial .st-round-counter { margin-left: auto; color: #9fa9bb; font-size: 10px; font-variant-numeric: tabular-nums; }
+seth-trial .st-wallet { gap: 7px; margin-bottom: 10px; }
+seth-trial .st-stat { padding: 7px 4px; border-color: #75664452; background: #0c1321e8; box-shadow: inset 0 1px #e9bf6710; }
+seth-trial .st-stat-label { font-size: 9px; color: #aaa8b5; }
+seth-trial .st-stat-value { font-size: 21px; color: #eee5d6; }
+seth-trial .st-board-shell { padding: 9px; border-color: #c9a25e; border-radius: 11px; background: linear-gradient(135deg, #d3ab66, #594122 20%, #1b1d28 50%, #b58e4e); box-shadow: 0 10px 28px #0008, inset 0 0 0 3px #261a11, 0 0 24px #d2993312; }
+seth-trial .st-simulator--temple .st-board-shell { border-color: #c7a1e3; background: linear-gradient(135deg, #b68acb, #5c395f 20%, #1a1726 50%, #b7925d); box-shadow: 0 10px 28px #0008, inset 0 0 0 3px #201228, 0 0 24px #b36fe518; }
+seth-trial .st-board { aspect-ratio: 6 / 3.95; gap: 5px; padding: 5px; background: #050a12; }
+seth-trial .st-cell { gap: 2px; border-color: #5b544852; background: radial-gradient(ellipse at 50% 15%, #39415385, transparent 85%), linear-gradient(160deg, #172337, #0c1220); box-shadow: inset 0 1px #f7dfb918, inset 0 -3px #03050c66; }
+seth-trial .st-simulator--temple .st-cell { border-color: #74608059; background: radial-gradient(ellipse at 50% 10%, #5a3f6d77, transparent 85%), linear-gradient(160deg, #211d38, #100d20); }
+seth-trial .st-symbol { width: 62%; height: 67%; max-width: 58px; max-height: 58px; filter: drop-shadow(0 3px 3px #0008); }
+seth-trial .st-cell-label { color: #d9ceba; font-size: 9px; letter-spacing: .08em; }
+seth-trial .st-cell.is-winning { border-color: #ffe9a6; background: radial-gradient(ellipse at center, #9f762180, #2c2618); box-shadow: inset 0 0 20px #e7be5f55, 0 0 8px #ffd17570; }
+seth-trial .st-feature-announcement { min-height: 23px; max-width: 600px; margin: 7px auto 0; color: #b9b2c2; font-size: 11px; font-weight: 600; text-align: center; line-height: 1.7; }
+seth-trial .is-splitting .st-feature-announcement, seth-trial .is-locking .st-feature-announcement { color: #f2d1ff; text-shadow: 0 0 14px #c889ffcc; }
+seth-trial .is-splitting .st-feature-meter, seth-trial .is-locking .st-feature-meter { border-color: #dcacff; box-shadow: 0 0 18px #b26be050; }
+seth-trial .st-win-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0 10px; min-height: 52px; margin: 5px auto 10px; padding: 6px 10px; border-color: #ad8a4859; background: linear-gradient(90deg, #1e1a1599, var(--st-game-soft), #1e1a1599); line-height: 1.3; }
+seth-trial .st-win-label { font-size: 10px; color: #d2c6b1; }
+seth-trial .st-win-value { font-size: 28px; color: var(--st-game-accent); font-variant-numeric: tabular-nums; font-weight: 900; line-height: 1.1; text-shadow: 0 2px 9px #000a; }
+seth-trial .st-win-meta { flex-basis: 100%; color: #aaa8b6; font-size: 10px; margin-top: 4px; }
+seth-trial .st-win-banner.is-counting .st-win-value { animation: st-score-pop .45s ease-out; }
+seth-trial .st-spin-controls { flex-wrap: nowrap; gap: 8px; }
+seth-trial .st-bet-control { flex: 1 1 160px; padding: 6px 9px; border-color: #7c694a77; background: #0d1421f2; color: #c9c3b8; font-size: 10px; }
+seth-trial .st-bet-control select { min-width: 69px; border-color: #927c5266; background: #080d17; }
+seth-trial .st-spin-button { flex: 2 1 170px; min-height: 51px; padding: 10px; border-color: #ffdc8f; border-radius: 9px; background: linear-gradient(180deg, #ffe7ac, #e6b452 60%, #c78c35); color: #302009; font-size: 16px; letter-spacing: .06em; }
+seth-trial .st-simulator--temple .st-spin-button { border-color: #edc7ff; background: linear-gradient(180deg, #edccff, #c18be5 65%, #9d60c4); color: #281035; }
+seth-trial .st-reset-button { flex: 0 0 auto; min-height: 44px; padding: 9px 10px; border-color: #77664b77; background: #21222be8; color: #cfc4b0; font-size: 10px; }
+seth-trial .st-buy-controls { display: flex; flex-direction: column; gap: 10px; padding: 17px; border: 1px solid #a17c435e; border-radius: 11px; background: linear-gradient(145deg, #3b2b204d, #0b1020f0); }
+seth-trial .st-buy-button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-height: 72px; padding: 11px 12px; border: 1px solid #c19c58; border-radius: 8px; color: #f3d79c; background: linear-gradient(140deg, #544026, #251d18); font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; box-shadow: inset 0 1px #fbe4a922; }
+seth-trial .st-simulator--temple .st-buy-button { border-color: #a377bf; color: #ebc8ff; background: linear-gradient(140deg, #503360, #24182f); }
+seth-trial .st-buy-button:hover:not(:disabled) { filter: brightness(1.18); }
+seth-trial .st-buy-price { font-size: 11px; font-weight: 600; color: #c5bda9; }
+seth-trial .st-buy-note { margin: 0; color: #a6a0ae; text-align: center; font-size: 10px; line-height: 1.8; }
+seth-trial .st-buy-confirm { padding: 15px; border: 1px solid #d5ac68; border-radius: 9px; background: #282116; }
+seth-trial .st-buy-description { margin: 0 0 12px; color: #f1dfbb; font-size: 12px; line-height: 1.8; }
+seth-trial .st-buy-confirm-actions { display: flex; gap: 8px; }
+seth-trial .st-buy-confirm-actions .st-icon-button { flex: 1; min-height: 42px; }
+seth-trial .st-buy-confirm-actions [data-action='buy-confirm'] { color: #251806; border-color: #f0ce83; background: #e7bb6a; }
+seth-trial .st-history { padding: 16px; border: 1px solid #6d5e444f; border-radius: 10px; background: #0c1220ec; }
+seth-trial .st-history h4 { margin: 0 0 12px; color: #ded3bd; font-size: 12px; font-weight: 700; letter-spacing: .04em; }
+seth-trial .st-history-list { list-style: none; padding: 0; margin: 0; }
+seth-trial .st-history-item { display: grid; grid-template-columns: 1fr auto; gap: 3px 9px; align-items: center; padding: 11px 0; border-top: 1px solid #3c3b435c; color: #aaa7b2; font-size: 10px; line-height: 1.5; }
+seth-trial .st-history-item:first-child { padding-top: 0; border-top: 0; }
+seth-trial .st-history-round { color: #e0d8c8; font-weight: 600; }
+seth-trial .st-history-round small { display: block; color: #a4a0af; font-size: 9px; font-weight: 400; }
+seth-trial .st-history-used { grid-column: 1; font-size: 10px; }
+seth-trial .st-history-win { grid-column: 2; grid-row: 1 / span 2; color: #e6c583; font-size: 17px; font-variant-numeric: tabular-nums; }
+seth-trial .st-history-empty { padding: 20px 0; color: #8d93a4; font-size: 11px; text-align: center; line-height: 1.8; }
+seth-trial .st-game-aside .st-rules { max-width: none; margin: 0; padding-inline: 13px; border-color: #78664b59; background: #101521eb; color: #aaa7b3; font-size: 10px; }
+seth-trial .st-rules summary { color: #d6ccba; font-size: 12px; }
+seth-trial .st-rules-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
+seth-trial .st-pay-item { padding: 6px; gap: 4px; font-size: 10px; border-color: #4d455653; background: #1c2130; }
+seth-trial .st-pay-item .st-symbol { width: 21px; height: 21px; }
+seth-trial .st-live-status { margin-top: 8px; font-size: 10px; color: #9599a9; }
+seth-trial button:disabled, seth-trial select:disabled { cursor: not-allowed; opacity: .46; filter: saturate(.55); }
+seth-trial :is(button, select, summary):focus-visible { outline: 2px solid #fff0c5; outline-offset: 4px; }
+seth-trial .st-simulator.is-expanded,
+seth-trial .st-simulator:fullscreen { overflow-x: hidden; overflow-y: auto; border-radius: 0; background: radial-gradient(ellipse at 60% 20%, #2c2135, #080c17 75%); }
+seth-trial .st-simulator.is-expanded .st-game-layout,
+seth-trial .st-simulator:fullscreen .st-game-layout { max-width: 1130px; margin-inline: auto; }
+seth-trial .st-simulator.is-expanded .st-sim-header,
+seth-trial .st-simulator:fullscreen .st-sim-header { max-width: 1130px; padding: 8px 0 14px; background: #0c101beF; backdrop-filter: blur(14px); }
+seth-trial .st-simulator.is-expanded .st-board-shell,
+seth-trial .st-simulator:fullscreen .st-board-shell { width: min(100%, 600px, max(290px, calc((100dvh - 420px) * 1.5))); }
+
+@keyframes st-score-pop { 0% { transform: scale(.86); opacity: .6; } 55% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+seth-trial .st-buy-confirm h4 { margin: 0 0 8px; color: #f6dda6; font-size: 13px; font-weight: 800; }
+seth-trial .st-buy-disclaimer { margin: 0 0 12px; color: #b8af9c; font-size: 10px; line-height: 1.7; }
+seth-trial .st-game-rules h5 { margin: 12px 0 5px; color: var(--st-game-accent); font-size: 12px; }
+seth-trial .st-feature-lock.is-locked { color: #e7bdff; text-shadow: 0 0 10px #b277d34d; }
+@media (max-width: 980px) {
+  seth-trial .st-game-layout { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  seth-trial .st-game-aside { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; max-width: 600px; margin-inline: auto; align-items: start; }
+  seth-trial .st-game-aside .st-rules, seth-trial .st-buy-confirm { grid-column: 1 / -1; }
+  seth-trial .st-simulator { padding: 20px; }
+  seth-trial .st-card-content { padding: 24px; }
+  seth-trial .st-card-description { max-width: 230px; }
+  seth-trial .st-card { min-height: 350px; }
+}
+@media (max-width: 640px) {
+  seth-trial .seth-trial-section { padding-block: 32px 25px; }
+  seth-trial .st-heading { gap: 12px; flex-wrap: wrap; }
+  seth-trial .st-heading h2 { font-size: 29px; }
+  seth-trial .st-intro { font-size: 12px; }
+  seth-trial .st-card-grid { grid-template-columns: 1fr; gap: 16px; }
+  seth-trial .st-card { min-height: 334px; }
+  seth-trial .st-card h3 { font-size: 31px; }
+  seth-trial .st-card-content { padding: 25px; }
+  seth-trial .st-card-art { background-position: center right; }
+  seth-trial .st-card-description { max-width: 235px; }
+  seth-trial .st-simulator { margin-top: 24px; padding: 16px 12px; border-radius: 13px; }
+  seth-trial .st-sim-title { font-size: 23px; }
+  seth-trial .st-sim-header { gap: 12px; padding-bottom: 12px; margin-bottom: 12px; }
+  seth-trial .st-feature-meter { padding: 5px 8px; gap: 4px 7px; font-size: 10px; }
+  seth-trial .st-feature-multiplier strong { font-size: 18px; }
+  seth-trial .st-feature-lock { font-size: 9px; }
+  seth-trial .st-round-counter { font-size: 9px; }
+  seth-trial .st-stat { padding: 7px 3px; }
+  seth-trial .st-stat-value { font-size: 18px; }
+  seth-trial .st-stat-label { font-size: 9px; }
+  seth-trial .st-board-shell { padding: 6px; border-radius: 9px; }
+  seth-trial .st-board { gap: 3px; padding: 3px; }
+  seth-trial .st-cell-label { font-size: 7px; }
+  seth-trial .st-symbol { width: 66%; height: 67%; }
+  seth-trial .st-win-value { font-size: 25px; }
+  seth-trial .st-win-meta { font-size: 9px; }
+  seth-trial .st-game-aside { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  seth-trial .st-rules-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  seth-trial .st-pay-item { font-size: 11px; }
+  seth-trial .st-history-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  seth-trial .st-history-item { display: flex; flex-direction: column; align-items: flex-start; padding: 0 0 0 9px; border-top: 0; border-left: 1px solid #49414c; }
+  seth-trial .st-history-item:first-child { border-left: 0; padding-left: 0; }
+  seth-trial .st-history-win { font-size: 16px; }
+  seth-trial .st-history-empty { grid-column: 1 / -1; padding: 10px 0; }
+}
+@media (max-width: 520px) {
+  seth-trial .st-sim-tools { width: 100%; }
+  seth-trial .st-sim-tools .st-icon-button { flex: 1; min-height: 40px; }
+  seth-trial .st-spin-controls { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; }
+  seth-trial .st-bet-control { grid-column: 1; grid-row: 1; min-height: 44px; }
+  seth-trial .st-reset-button { grid-column: 2; grid-row: 1; font-size: 10px; }
+  seth-trial .st-spin-button { grid-column: 1 / -1; grid-row: 2; min-height: 51px; }
+  seth-trial .st-simulator.is-expanded, seth-trial .st-simulator:fullscreen { padding-inline: 10px; }
+}
+@media (max-width: 360px) {
+  seth-trial .st-card-content { padding: 21px; }
+  seth-trial .st-card h3 { font-size: 28px; }
+  seth-trial .st-stat-value { font-size: 15px; }
+  seth-trial .st-feature-lock { max-width: 126px; }
+  seth-trial .st-rules-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  seth-trial *, seth-trial *::before, seth-trial *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
