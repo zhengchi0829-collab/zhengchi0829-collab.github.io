@@ -42,7 +42,7 @@
 seth-trial {
   display: block;
   min-width: 0;
-  scroll-margin-top: 108px;
+  scroll-margin-top: 0;
 }
 
 seth-trial[hidden],
@@ -311,7 +311,7 @@ seth-trial .st-player {
   border: 1px solid #3a465f;
   border-radius: 12px;
   background: #111729;
-  scroll-margin-top: 108px;
+  scroll-margin-top: 0;
 }
 
 seth-trial .st-player-heading {
@@ -391,7 +391,7 @@ seth-trial [tabindex]:focus-visible {
   }
 
   seth-trial {
-    scroll-margin-top: 88px;
+    scroll-margin-top: 0;
   }
 
   seth-trial .seth-trial-section {
@@ -437,7 +437,7 @@ seth-trial [tabindex]:focus-visible {
 
   seth-trial .st-player {
     padding: 16px 12px;
-    scroll-margin-top: 88px;
+    scroll-margin-top: 0;
   }
 }
 
@@ -491,7 +491,7 @@ seth-trial .st-simulator {
   background: radial-gradient(ellipse at 50% 0, #34456840, transparent 64%), #0b1020;
   color: #f0f4ff;
   box-shadow: 0 22px 60px #02040d55, inset 0 1px #efce8b10;
-  scroll-margin-top: 108px;
+  scroll-margin-top: 0;
 }
 
 seth-trial .st-simulator--temple {
@@ -925,7 +925,7 @@ seth-trial .st-simulator:fullscreen .st-board-shell {
   seth-trial .st-simulator {
     padding: 16px 12px;
     border-radius: 12px;
-    scroll-margin-top: 88px;
+    scroll-margin-top: 0;
   }
 
   seth-trial .st-sim-title { font-size: 19px; }
