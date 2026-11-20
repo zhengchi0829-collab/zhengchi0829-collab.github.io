@@ -73,7 +73,7 @@ case 2:if(a<2||a>15||a%1||b<=0||!odds(c))break;let bets=Math.pow(2,a)-a-1,return
 case 3:if(a<0||a>100||!odds(b))break;r='EV = '+percent(a/100*b-1);break;
 case 4:if(!odds(a))break;r='隱含機率：'+percent(1/a);break;
 case 5:case 6:if(!odds(a)||!odds(b))break;let over=1/a+1/b;r=tool===5?'市場抽水率（超額機率）：'+percent(over-1):'兩向市場超額機率：'+percent(over-1)+'；理論返還率：'+percent(1/over);break;
-case 7:if(!odds(a)||!odds(b))break;let p=1/a+1/b;r='去除抽水後的公平賠率 A：'+money((1/a+1/b)/(1/a))+'；B：'+money((1/a+1/b)/(1/b));break;
+case 7:if(!odds(a)||!odds(b))break;r='去除抽水後的公平賠率 A：'+money((1/a+1/b)/(1/a))+'；B：'+money((1/a+1/b)/(1/b));break;
 case 8:if(!odds(a))break;r='美式賠率：'+(a>=2?'+'+money((a-1)*100):money(-100/(a-1)))+'；分數賠率：'+money(a-1)+':1；隱含機率：'+percent(1/a);break;
 case 9:if(!odds(a)||!odds(b)||c<=0)break;let q=1/a+1/b;r='機率合計：'+percent(q)+'；'+(q<1?'存在理論套利空間':'無理論套利空間')+'；A 分配：'+money(c/a/q)+'；B 分配：'+money(c/b/q)+'；固定總返還：'+money(c/q);break;
 case 10:if(a<=0||!odds(b)||!odds(c))break;let h=a*(b-1)/(c+b-1);r='免本金返還型免費投注：對沖本金約 '+money(h)+'；理論鎖定淨額約 '+money(h*(c-1))+'（未納入手續費與盤口限制）';break;
