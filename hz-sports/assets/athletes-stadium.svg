@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 420" role="img" aria-label="足球、籃球、棒球及網球運動員與球場燈光的插畫">
+<defs>
+<linearGradient id="sky" x2="1" y2="1"><stop stop-color="#061a19"/><stop offset=".48" stop-color="#164336"/><stop offset="1" stop-color="#09151a"/></linearGradient>
+<radialGradient id="light"><stop stop-color="#e9f9e8" stop-opacity=".7"/><stop offset=".2" stop-color="#a5e8bb" stop-opacity=".22"/><stop offset="1" stop-color="#91eec8" stop-opacity="0"/></radialGradient>
+<linearGradient id="green" x2="0" y2="1"><stop stop-color="#48c985"/><stop offset="1" stop-color="#11754f"/></linearGradient>
+<linearGradient id="blue" x2="0" y2="1"><stop stop-color="#7bc4f0"/><stop offset="1" stop-color="#2569a0"/></linearGradient>
+<linearGradient id="gold" x2="0" y2="1"><stop stop-color="#fce074"/><stop offset="1" stop-color="#db9d28"/></linearGradient>
+<linearGradient id="red" x2="0" y2="1"><stop stop-color="#ec867b"/><stop offset="1" stop-color="#b13e44"/></linearGradient>
+<linearGradient id="skin" x2="0" y2="1"><stop stop-color="#edc39c"/><stop offset="1" stop-color="#a66d50"/></linearGradient>
+<filter id="blur"><feGaussianBlur stdDeviation="7"/></filter><filter id="glow"><feGaussianBlur stdDeviation="2"/></filter>
+</defs>
+<rect width="1500" height="420" fill="url(#sky)"/>
+<ellipse cx="650" cy="50" rx="620" ry="140" fill="#1e795b" opacity=".18" filter="url(#blur)"/>
+<path d="M0 240 Q680 55 1500 230 V420 H0" fill="#123322" opacity=".58"/><path d="M0 298 Q750 165 1500 305 V420 H0" fill="#275e30" opacity=".53"/>
+<g stroke="#cff2c5" stroke-opacity=".3" stroke-width="2"><path d="M0 300 Q750 170 1500 300" fill="none"/><path d="M0 347 Q750 223 1500 350" fill="none"/></g>
+<g fill="#d8fff0"><circle cx="160" cy="90" r="7"/><circle cx="190" cy="70" r="5"/><circle cx="218" cy="57" r="6"/><circle cx="250" cy="48" r="5"/><circle cx="1235" cy="54" r="6"/><circle cx="1266" cy="60" r="7"/><circle cx="1300" cy="70" r="5"/><circle cx="1332" cy="86" r="7"/></g>
+<ellipse cx="207" cy="67" rx="245" ry="175" fill="url(#light)"/><ellipse cx="1290" cy="65" rx="255" ry="170" fill="url(#light)"/>
+<path d="M130 82 L-80 400 L650 380 Z" fill="#e5fff2" opacity=".045"/><path d="M1340 75 L780 380 L1670 420 Z" fill="#e5fff2" opacity=".06"/>
+<g transform="translate(390 52)">
+<!-- football athlete running -->
+<ellipse cx="108" cy="365" rx="130" ry="19" fill="#010b0c" opacity=".44"/>
+<path d="M63 224 L24 346 L67 360 L127 259 Z" fill="#eff4f0" stroke="#1b4b43" stroke-width="5"/><path d="M142 228 L179 360 L226 356 L191 230 Z" fill="#e4ebea" stroke="#1b4b43" stroke-width="5"/>
+<path d="M53 97 L170 96 L204 242 Q126 272 47 233 Z" fill="url(#blue)" stroke="#173b54" stroke-width="7"/><path d="M110 97 L105 250" stroke="#dcefff" stroke-width="8"/><path d="M70 111 L150 112" stroke="#dcefff" stroke-width="4"/>
+<path d="M59 119 L-9 200 L18 218 L91 165" fill="url(#skin)" stroke="#8a5b44" stroke-width="5"/><path d="M169 111 L247 33 L273 51 L193 180" fill="url(#skin)" stroke="#8a5b44" stroke-width="5"/>
+<circle cx="258" cy="37" r="18" fill="url(#skin)"/><path d="M74 47 L77 104 L147 108 L149 48" fill="url(#skin)"/><ellipse cx="112" cy="37" rx="45" ry="51" fill="url(#skin)" stroke="#855640" stroke-width="4"/>
+<path d="M70 20 Q75 -31 116 -28 Q155 -27 159 10 L146 2 L128 -9 L104 6 L78 5Z" fill="#132526"/><path d="M107 84 Q130 101 143 74" stroke="#56372b" stroke-width="5" fill="none"/>
+<text x="88" y="178" fill="#ffffff" font-family="sans-serif" font-size="60" font-weight="900">10</text>
+<g transform="translate(-7 256)"><circle cx="0" cy="0" r="28" fill="#f4f4e7" stroke="#1f3934" stroke-width="4"/><path d="M-12 -5 L0 -16 L14 -4 L8 11 L-10 11Z" fill="#193f3a"/><path d="M-25 -12 L-12 -5 M25 -7 L14 -4 M-12 11 L-18 23 M8 11 L18 23" stroke="#193f3a" stroke-width="6"/></g>
+</g>
+<g transform="translate(718 24)">
+<!-- basketball player -->
+<ellipse cx="108" cy="397" rx="129" ry="18" fill="#000" opacity=".38"/>
+<path d="M64 264 L40 388 L83 389 L129 288Z" fill="url(#skin)"/><path d="M146 269 L181 393 L222 390 L193 263" fill="url(#skin)"/>
+<path d="M66 124 L159 123 L207 279 L54 275Z" fill="url(#gold)" stroke="#9a7325" stroke-width="7"/>
+<path d="M84 127 L90 271 M182 136 L181 263" stroke="#fff4c5" stroke-width="6"/>
+<path d="M65 144 L-13 186 L-40 159 L60 115Z" fill="url(#skin)" stroke="#926445" stroke-width="6"/>
+<path d="M162 145 L220 211 L255 184 L199 110Z" fill="url(#skin)" stroke="#926445" stroke-width="6"/>
+<ellipse cx="116" cy="53" rx="43" ry="50" fill="url(#skin)" stroke="#8d6049" stroke-width="4"/><path d="M77 29 Q75 -27 118 -24 Q157 -25 158 16 L142 9 Q103 -7 77 29" fill="#151e1d"/><path d="M90 98 L94 132 L145 132 L144 96" fill="url(#skin)"/>
+<text x="94" y="218" fill="#103928" font-family="sans-serif" font-size="66" font-weight="900">24</text>
+<g transform="translate(265 179)"><circle r="65" fill="#d77927" stroke="#642e19" stroke-width="6"/><path d="M-64 0H64 M0 -65V65 M-40 -50Q10 0 -40 50 M40 -50Q-10 0 40 50" fill="none" stroke="#632d16" stroke-width="5"/></g>
+</g>
+<g transform="translate(1140 48)">
+<!-- baseball batter -->
+<ellipse cx="95" cy="365" rx="120" ry="17" fill="#030e0c" opacity=".38"/>
+<path d="M38 250 L25 365 L70 371 L107 270" fill="#eff4f4" stroke="#38545b" stroke-width="6"/><path d="M120 265 L159 367 L205 360 L168 246" fill="#edf0ed" stroke="#38545b" stroke-width="6"/>
+<path d="M44 112 L151 114 L184 266 Q103 289 32 265Z" fill="url(#red)" stroke="#6c3236" stroke-width="7"/><path d="M73 123 L81 268 M139 130 L140 262" stroke="#f8e1da" stroke-width="5"/>
+<path d="M58 127 L-43 64 L-58 83 L43 182" fill="url(#skin)" stroke="#885640" stroke-width="5"/>
+<path d="M140 124 L-13 36 L-27 55 L127 188" fill="url(#skin)" stroke="#885640" stroke-width="5"/>
+<path d="M-45 42 L37 -94" stroke="#d3b581" stroke-width="14" stroke-linecap="round"/><path d="M-40 25 L-61 57" stroke="#2c2524" stroke-width="16" stroke-linecap="round"/>
+<ellipse cx="95" cy="48" rx="42" ry="47" fill="url(#skin)" stroke="#89533e" stroke-width="4"/>
+<path d="M48 10 Q74 -26 126 6 L137 23 Q95 2 49 38Z" fill="#192a2d"/><path d="M44 20 Q87 6 145 22" stroke="#132427" stroke-width="13" stroke-linecap="round"/>
+<path d="M80 89 L81 124 L120 123 L118 91" fill="url(#skin)"/>
+<text x="65" y="208" font-size="66" fill="#ffe7da" font-weight="900" font-family="sans-serif">17</text>
+</g>
+<path d="M0 399 Q800 373 1500 392 L1500 420 H0" fill="#0a371f"/><path d="M0 403 Q830 381 1500 403" fill="none" stroke="#9bd572" stroke-opacity=".35" stroke-width="3"/>
+</svg>
