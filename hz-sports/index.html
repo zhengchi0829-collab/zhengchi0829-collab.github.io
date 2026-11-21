@@ -520,7 +520,7 @@ before.setAttribute("aria-hidden","true");after.setAttribute("aria-hidden","true
 track.insertBefore(before,original[0]);track.appendChild(after);
 const nodes=Array.from(track.querySelectorAll(".hz-slide"));
 let logical=0,index=1,timer=null,busy=false,touchX=null;
-function render(animate){track.style.transition=animate?"transform 480ms cubic-bezier(.22,.61,.36,1)":"none";track.style.transform="translate3d("+(-index*100)+"%,0,0)";}
+function render(animate){track.style.transition=animate?"transform 650ms cubic-bezier(.22,.61,.36,1)":"none";track.style.transform="translate3d("+(-index*100)+"%,0,0)";}
 function sync(){nodes.forEach((el,i)=>{const on=i===index;el.classList.toggle("is-active",on);el.setAttribute("aria-hidden",String(!on));el.querySelectorAll("a").forEach(a=>{a.tabIndex=on?0:-1})});dots.forEach((dot,i)=>{const on=i===logical;dot.classList.toggle("is-active",on);dot.setAttribute("aria-current",String(on))})}
 function go(delta){if(busy)return;busy=true;logical=(logical+delta+total)%total;index+=delta;sync();render(true)}
 track.addEventListener("transitionend",e=>{if(e.target!==track||e.propertyName!=="transform")return;busy=false;if(index===0){index=total;render(false)}else if(index===total+1){index=1;render(false)}sync()});
