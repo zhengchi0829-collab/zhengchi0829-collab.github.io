@@ -525,7 +525,7 @@ function sync(){nodes.forEach((el,i)=>{const on=i===index;el.classList.toggle("i
 function go(delta){if(busy)return;busy=true;logical=(logical+delta+total)%total;index+=delta;sync();render(true)}
 track.addEventListener("transitionend",e=>{if(e.target!==track||e.propertyName!=="transform")return;busy=false;if(index===0){index=total;render(false)}else if(index===total+1){index=1;render(false)}sync()});
 function stop(){if(timer!==null){clearInterval(timer);timer=null}}
-function play(){stop();if(!window.matchMedia("(prefers-reduced-motion: reduce)").matches){timer=setInterval(()=>{if(!document.hidden&&!busy)go(1)},2000)}}
+function play(){stop();if(!window.matchMedia("(prefers-reduced-motion: reduce)").matches){timer=setInterval(()=>{if(!document.hidden&&!busy)go(1)},3000)}}
 function action(delta){go(delta);play()}
 root.querySelector(".hz-slider-prev").addEventListener("click",()=>action(-1));
 root.querySelector(".hz-slider-next").addEventListener("click",()=>action(1));
