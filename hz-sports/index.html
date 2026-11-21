@@ -532,7 +532,10 @@ root.querySelector(".hz-slider-next").addEventListener("click",()=>action(1));
 dots.forEach((dot,i)=>dot.addEventListener("click",()=>{if(busy||i===logical)return;const forward=(i-logical+total)%total;action(forward===1?1:-1)}));
 root.addEventListener("touchstart",e=>{touchX=e.changedTouches[0].clientX},{passive:true});
 root.addEventListener("touchend",e=>{if(touchX===null)return;const dx=e.changedTouches[0].clientX-touchX;touchX=null;if(Math.abs(dx)>35)action(dx<0?1:-1)},{passive:true});
-root.addEventListener("mouseenter",stop);root.addEventListener("mouseleave",play);
-root.addEventListener("focusin",stop);root.addEventListener("focusout",e=>{if(!root.contains(e.relatedTarget))play()});
-render(false);sync();play();
+function repair(){busy=false;index=logical+1;render(false);sync()}
+function updatePlayback(){if(document.hidden||!(location.hash===""||location.hash==="#home")){stop();repair();return}repair();play()}
+window.addEventListener("hashchange",updatePlayback);
+window.addEventListener("pageshow",updatePlayback);
+document.addEventListener("visibilitychange",updatePlayback);
+render(false);sync();updatePlayback();
 })();</script></body></html>
