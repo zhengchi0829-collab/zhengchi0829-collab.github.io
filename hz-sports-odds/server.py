@@ -46,12 +46,13 @@ def permitted(raw):
         if not url.path.startswith(prefix):
             return False
         pieces = url.path[len(prefix):].split("/")
-        if len(pieces) != 8:
+        if len(pieces) not in (8, 9):
             return False
-        sport, marker, league, events, eventid, comp, cid, odds = pieces
+        sport, marker, league, events, eventid, comp, cid, odds = pieces[:8]
         return (marker == "leagues" and events == "events" and comp == "competitions"
                 and odds == "odds" and f"{sport}/{league}" in ALLOWED_LEAGUES
-                and eventid.isalnum() and cid.isalnum())
+                and eventid.isalnum() and cid.isalnum()
+                and (len(pieces) == 8 or pieces[8].isalnum()))
     return False
 
 
