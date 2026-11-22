@@ -16,7 +16,8 @@ const num=n=>{const v=Number(n);return Number.isFinite(v)?v:null};
 const show=v=>v===null||v===undefined||v===""?"暫無賠率":safe(v);
 function ml(value){if(value===null||value===undefined||value==="")return null;const v=Number(value);if(!Number.isFinite(v))return null;const dec=v>0?1+v/100:v<0?1+100/Math.abs(v):null;return dec?dec.toFixed(2):null}
 const decimalValue=(raw,decimal)=>{if(decimal!==undefined&&decimal!==null&&decimal!==""){const v=Number(decimal);if(v>1&&Number.isFinite(v))return v.toFixed(2)}return ml(raw)};
-async function get(url){const c=new AbortController(),timer=setTimeout(()=>c.abort(),12000);try{const r=await fetch(url,{signal:c.signal,cache:"no-store"});if(!r.ok)throw Error("HTTP "+r.status);return await r.json()}finally{clearTimeout(timer)}}
+const oddsBackend="https://hz-sports-odds.onrender.com/api/espn";
+async function get(url){const c=new AbortController(),timer=setTimeout(()=>c.abort(),19000);try{const proxy=oddsBackend+"?url="+encodeURIComponent(url);const r=await fetch(proxy,{signal:c.signal,cache:"default"});if(!r.ok)throw Error("HTTP "+r.status);return await r.json()}finally{clearTimeout(timer)}}
 let games=[],request=0,oddsRequest=0;
 function status(s){$status.textContent=s}
 function fillLeagues(){const options=leagues.filter(x=>x[0]===$sport.value);$league.innerHTML=options.map(x=>'<option value="'+safe(x[2])+'">'+safe(x[1])+'</option>').join("");loadMatches()}
