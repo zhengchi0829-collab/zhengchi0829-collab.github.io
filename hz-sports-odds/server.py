@@ -121,6 +121,41 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, {"status": "ok", "service": "hz-sports-independent-odds",
                              "bot_api_calls": 0})
             return
+        if url.path == "/api/odds-snapshot":
+            upstream = ("https://raw.githubusercontent.com/zhengchi0829-collab/"
+                        "line-sports-ai-/odds-cache/tw_third_party_odds.json")
+            try:
+                data, stale = fetch_json(upstream)
+                if not isinstance(data, dict) or not isinstance(data.get("leagues"), dict):
+                    raise ValueError("Invalid odds snapshot")
+                from datetime import datetime, timezone, timedelta
+                today = datetime.now(timezone(timedelta(hours=8))).date().isoformat()
+                if data.get("day") != today:
+                    self._send(200, {"status": "stale", "day": data.get("day"),
+                                     "leagues": {}, "source": "third_party_cached"})
+                    return
+                allowed = ("足球", "英超", "西甲", "德甲", "義甲", "法甲", "歐冠",
+                           "NBA", "NCAA", "NBL", "TPBL", "MLB", "NPB", "KBO", "CPBL", "MiLB")
+                clean = {}
+                for name, rows in data["leagues"].items():
+                    if name not in allowed or not isinstance(rows, list):
+                        continue
+                    clean[name] = [
+                        {k: row.get(k) for k in (
+                            "event_id", "home", "away", "start", "home_price",
+                            "away_price", "draw_price", "spread",
+                            "spread_home_price", "spread_away_price", "total",
+                            "over_price", "under_price")}
+                        for row in rows[:250]
+                        if isinstance(row, dict) and row.get("home") and row.get("away")
+                    ]
+                self._send(200, {"status": "ok", "day": data["day"],
+                                 "captured_at": data.get("captured_at"),
+                                 "source": "third_party_cached", "leagues": clean},
+                           {"X-Hz-Cache": "stale" if stale else "ok"})
+            except Exception:
+                self._send(502, {"error": "SNAPSHOT_UNAVAILABLE"})
+            return
         if url.path != "/api/espn":
             self._send(404, {"error": "NOT_FOUND"})
             return
