@@ -44,7 +44,7 @@ const id=e.id,cid=comp(e).id||id;
 const parts=lg.split("/");
 const core="https://sports.core.api.espn.com/v2/sports/"+parts[0]+"/leagues/"+parts[1]+"/events/"+encodeURIComponent(id)+"/competitions/"+encodeURIComponent(cid)+"/odds?limit=10";
 const res=await get(core).catch(()=>null);
-for(const item of res?.items||[]){if(!item.$ref)return item}
+for(const item of (res?.items||[]).slice(0,3)){if(!item.$ref)return item;try{const url=new URL(item.$ref);if(url.protocol!=="https:"||url.hostname!=="sports.core.api.espn.com")continue;const value=await get(url.href);if(value&&typeof value==="object")return value}catch(e){}}
 return null}
 function oddsValues(o){if(!o)return null;
 const away=o.awayTeamOdds||{},home=o.homeTeamOdds||{};
