@@ -49,28 +49,59 @@ for(const item of (res?.items||[]).slice(0,3)){if(!item.$ref)return item;try{con
 return null}
 function oddsValues(o){if(!o)return null;
 const away=o.awayTeamOdds||{},home=o.homeTeamOdds||{};
+const money=(team)=>decimalValue(team.moneyLine??team.moneyline??team.money_line,team.moneyLineDecimal??team.decimalMoneyLine??team.moneylineDecimal);
+const spreadOdds=(team)=>decimalValue(team.spreadOdds??team.spreadPrice,team.spreadOddsDecimal??team.decimalSpreadOdds);
+const overOdds=o.overOdds??o.overTeamOdds?.odds??o.over?.odds??o.overPrice;
+const underOdds=o.underOdds??o.underTeamOdds?.odds??o.under?.odds??o.underPrice;
 return {provider:o.provider?.name||o.provider?.displayName||o.provider||"未標示業者",details:o.details||null,
-awayML:decimalValue(away.moneyLine,away.moneyLineDecimal),homeML:decimalValue(home.moneyLine,home.moneyLineDecimal),
+awayML:money(away),homeML:money(home),
 awaySpread:away.spread??o.awaySpread??null,homeSpread:home.spread??o.homeSpread??o.spread??null,
-awaySpreadOdds:decimalValue(away.spreadOdds,away.spreadOddsDecimal),homeSpreadOdds:decimalValue(home.spreadOdds,home.spreadOddsDecimal),
-total:o.overUnder??o.total??null,overOdds:decimalValue(o.overOdds,o.overOddsDecimal),underOdds:decimalValue(o.underOdds,o.underOddsDecimal)}}
+awaySpreadOdds:spreadOdds(away),homeSpreadOdds:spreadOdds(home),
+total:o.overUnder??o.total??null,overOdds:decimalValue(overOdds,o.overOddsDecimal??o.overTeamOdds?.decimalOdds),underOdds:decimalValue(underOdds,o.underOddsDecimal??o.underTeamOdds?.decimalOdds)}}
+const canonical=n=>{const name=String(n||"").trim();return (window.hzTeamZh?.(name)||name).normalize("NFKC").toLowerCase().replace(/[\\s\\p{P}]/gu,"")};
+const matched=(source,target)=>{const a=canonical(source),b=canonical(target?.displayName||target?.name||"");const short=canonical(target?.shortDisplayName||"");return !!a&&(a===b||(short&&a===short))};
+let snapshotCache=null,snapshotLoadedAt=0;
+async function snapshotOdds(event,league){
+ const labels={ "soccer/eng.1":"英超","soccer/esp.1":"西甲","soccer/ger.1":"德甲","soccer/ita.1":"義甲","soccer/fra.1":"法甲","soccer/uefa.champions":"歐冠",
+ "basketball/nba":"NBA","basketball/mens-college-basketball":"NCAA","basketball/nbl":"NBL","basketball/tpbl":"TPBL",
+ "baseball/mlb":"MLB","baseball/npb":"NPB","baseball/kbo":"KBO","baseball/cpbl":"CPBL","baseball/milb":"MiLB"};
+ const now=Date.now();if(!snapshotCache||now-snapshotLoadedAt>120000){try{const r=await fetch("https://hz-sports-odds.onrender.com/api/odds-snapshot",{cache:"no-store"});if(!r.ok)throw Error("snapshot");snapshotCache=await r.json();snapshotLoadedAt=now}catch(e){return null}}
+ if(snapshotCache?.status!=="ok")return null;
+ const cs=comp(event).competitors||[],a=cs.find(x=>x.homeAway==="away")?.team||cs[0]?.team,h=cs.find(x=>x.homeAway==="home")?.team||cs[1]?.team;
+ if(!a||!h)return null;
+ const rows=snapshotCache.leagues?.[labels[league]]||[];
+ const stamp=Date.parse(event.date);
+ const row=rows.find(x=>Math.abs(Date.parse(x.start)-stamp)<=2*3600000&&matched(x.home,h)&&matched(x.away,a));
+ if(!row)return null;
+ const p=x=>Number.isFinite(Number(x))&&x!==null&&x!==""&&Number(x)>1?Number(x).toFixed(2):null;
+ const vals={provider:"第三方公開賠率快取（非娛樂平台官方）",awayML:p(row.away_price),homeML:p(row.home_price),drawML:p(row.draw_price),
+ awaySpread:row.spread===null?null:-Number(row.spread),homeSpread:row.spread,
+ awaySpreadOdds:p(row.spread_away_price),homeSpreadOdds:p(row.spread_home_price),
+ total:row.total,overOdds:p(row.over_price),underOdds:p(row.under_price)};
+ return [vals.awayML,vals.homeML,vals.awaySpreadOdds,vals.homeSpreadOdds,vals.overOdds,vals.underOdds].some(Boolean)?vals:null;
+}
 function panelRow(title,a,b){return '<div class="hz-odds-market"><b>'+safe(title)+'</b><div>'+a+'</div><div>'+b+'</div></div>'}
 async function loadOdds(){const e=games[Number($match.value)];if(!e)return;const id=++oddsRequest,lg=$league.value;
 $detail.innerHTML='<div class="hz-odds-no-data">查詢該場實際盤口中…</div>';
 const cs=comp(e).competitors||[],a=cs.find(x=>x.homeAway==="away")?.team||cs[0]?.team,h=cs.find(x=>x.homeAway==="home")?.team||cs[1]?.team;
 const heading='<div class="hz-odds-match"><div>'+logo(a)+'<strong>'+safe(cn(a))+'</strong><small>客隊</small></div><span>VS</span><div>'+logo(h)+'<strong>'+safe(cn(h))+'</strong><small>主隊</small></div></div><p class="hz-odds-date">'+safe(time(e.date))+'（台灣時間）｜'+safe($league.selectedOptions[0]?.textContent||"")+'</p>';
 try{const raw=await getOdds(e,lg);if(id!==oddsRequest)return;
-const o=oddsValues(raw);
-if(!o||![o.awayML,o.homeML,o.awaySpread,o.homeSpread,o.total].some(v=>v!==null)){
-$detail.innerHTML=heading+'<div class="hz-odds-no-data">此場次目前沒有可核實的公開賠率。請勿將此狀態視為沒有開盤。</div>';status("已載入賽事，但該場未取得可驗證盤口。");return}
+let o=oddsValues(raw);const hasPrice=v=>v!==null&&v!==undefined&&v!=="";
+const count=o?[o.awayML,o.homeML,o.awaySpreadOdds,o.homeSpreadOdds,o.overOdds,o.underOdds].filter(hasPrice).length:0;
+if(count<2){const backup=await snapshotOdds(e,lg);if(id!==oddsRequest)return;if(backup)o=backup}
+if(!o||![o.awayML,o.homeML,o.awaySpreadOdds,o.homeSpreadOdds,o.overOdds,o.underOdds].some(hasPrice)){
+$detail.innerHTML=heading+'<div class="hz-odds-no-data">此場目前未取得可核實的賠率價格，請改查其他場次。</div>';status("已載入賽事，但來源目前沒有可核實的價格。");return}
 const provider=typeof o.provider==="string"?o.provider:"未標示業者";
-const spread=v=>v===null?"—":safe(v);const price=v=>v===null?"暫無賠率":safe(v);
-const fields=[
-panelRow("獨贏（十進位賠率）",'<span>'+safe(cn(a))+'</span><strong>'+price(o.awayML)+'</strong>','<span>'+safe(cn(h))+'</span><strong>'+price(o.homeML)+'</strong>'),
-panelRow("讓分盤",'<span>客隊讓分 '+spread(o.awaySpread)+'</span><strong>'+price(o.awaySpreadOdds)+'</strong>','<span>主隊讓分 '+spread(o.homeSpread)+'</span><strong>'+price(o.homeSpreadOdds)+'</strong>'),
-panelRow("大小分",'<span>大 '+spread(o.total)+'</span><strong>'+price(o.overOdds)+'</strong>','<span>小 '+spread(o.total)+'</span><strong>'+price(o.underOdds)+'</strong>')
-].join("");
-$detail.innerHTML=heading+'<div class="hz-odds-provider">盤口來源：'+safe(provider)+'｜資料為來源當前回傳，可能延遲或變動</div>'+fields+'<p class="subtle">僅顯示來源有提供的數值；不同業者、不同地區盤口可能不一致。本站未串接台灣運彩官方盤口。</p>';status("已取得此場賽事可用的盤口資訊。");
+const displayPrice=v=>hasPrice(v)?safe(v):"—",spread=v=>hasPrice(v)?safe(v):"—";
+const fields=[];
+if(hasPrice(o.awayML)||hasPrice(o.homeML)){
+fields.push(panelRow("獨贏（十進位賠率）",'<span>'+safe(cn(a))+'</span><strong>'+displayPrice(o.awayML)+'</strong>','<span>'+safe(cn(h))+'</span><strong>'+displayPrice(o.homeML)+'</strong>'));
+if(hasPrice(o.drawML))fields.push('<div class="hz-odds-market"><b>和局</b><div><strong>'+displayPrice(o.drawML)+'</strong></div></div>')}
+if(hasPrice(o.awaySpreadOdds)||hasPrice(o.homeSpreadOdds)){
+fields.push(panelRow("讓分盤",'<span>客隊讓分 '+spread(o.awaySpread)+'</span><strong>'+displayPrice(o.awaySpreadOdds)+'</strong>','<span>主隊讓分 '+spread(o.homeSpread)+'</span><strong>'+displayPrice(o.homeSpreadOdds)+'</strong>'))}
+if(hasPrice(o.overOdds)||hasPrice(o.underOdds)){
+fields.push(panelRow("大小分",'<span>大 '+spread(o.total)+'</span><strong>'+displayPrice(o.overOdds)+'</strong>','<span>小 '+spread(o.total)+'</span><strong>'+displayPrice(o.underOdds)+'</strong>'))}
+$detail.innerHTML=heading+'<div class="hz-odds-provider">賠率來源：'+safe(provider)+'｜來源可能延遲或變動</div>'+fields.join("")+'<p class="subtle">僅展示核實取得的價格；沒有價格的市場不顯示。本站未串接娛樂平台官方即時盤口。</p>';status("已顯示本場可取得的賠率價格。");
 }catch(err){if(id!==oddsRequest)return;$detail.innerHTML=heading+'<div class="hz-odds-no-data">盤口來源目前無法連線，請稍後重新整理。</div>';status("賽事已載入，但盤口查詢失敗。")}}
 $sport.addEventListener("change",fillLeagues);$league.addEventListener("change",loadMatches);$match.addEventListener("change",loadOdds);$refresh.addEventListener("click",loadMatches);
 fillLeagues();
