@@ -3,23 +3,29 @@
 const $=id=>document.getElementById(id);
 const src="https://site.api.espn.com/apis/site/v2/sports/";
 const leagues=[["足球","英超","soccer/eng.1"],["足球","西甲","soccer/esp.1"],["足球","德甲","soccer/ger.1"],["足球","義甲","soccer/ita.1"],["足球","法甲","soccer/fra.1"],["足球","歐冠","soccer/uefa.champions"],["籃球","NBA","basketball/nba"],["籃球","NCAA","basketball/mens-college-basketball"],["籃球","NBL","basketball/nbl"],["籃球","TPBL","basketball/tpbl"],["棒球","MLB","baseball/mlb"],["棒球","NPB","baseball/npb"],["棒球","KBO","baseball/kbo"],["棒球","CPBL","baseball/cpbl"],["棒球","MiLB","baseball/milb"]];
-let epoch=0;
+let epoch=0;const leagueCache=new Map();const knownTeams=new Map();
 const esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmtDate=x=>new Date(x).toLocaleDateString("zh-TW",{timeZone:"Asia/Taipei",month:"2-digit",day:"2-digit"});
 const notice=(t)=>{$("hz-team-results").innerHTML='<div class="hz-team-status">'+esc(t)+'</div>'};
 async function json(url){const ctl=new AbortController();const timeout=setTimeout(()=>ctl.abort(),13000);try{const r=await fetch(url,{signal:ctl.signal,cache:"no-store"});if(!r.ok)throw Error("HTTP "+r.status);return await r.json()}finally{clearTimeout(timeout)}}
+function monthCodes(count){const a=[];const d=new Date();d.setUTCDate(1);for(let i=0;i<count;i++){a.push(d.getUTCFullYear()+String(d.getUTCMonth()+1).padStart(2,"0"));d.setUTCMonth(d.getUTCMonth()-1)}return a}
+async function leagueEvents(lg,count=6){const key=lg+":"+count;if(leagueCache.has(key))return leagueCache.get(key);const queries=monthCodes(count).map(m=>json(src+lg+"/scoreboard?dates="+m+"&limit=500").then(x=>x.events||[]));const answers=await Promise.allSettled(queries);const valid=answers.filter(x=>x.status==="fulfilled");if(!valid.length)throw Error("賽程來源無法存取");const events=[...new Map(valid.flatMap(x=>x.value).map(e=>[String(e.id),e])).values()].sort((a,b)=>Date.parse(b.date)-Date.parse(a.date));leagueCache.set(key,events);return events}
+function discoverTeams(events){const map=new Map();for(const e of events)for(const c of e.competitions?.[0]?.competitors||[]){const t=c.team;if(t?.id)map.set(String(t.id),t)}return [...map.values()].sort((a,b)=>String(a.displayName||a.name).localeCompare(String(b.displayName||b.name),"zh-Hant"))}
 const sport=$("hz-team-sport"),league=$("hz-team-league"),team=$("hz-team-team"),go=$("hz-team-refresh");
 if(!sport||!league||!team||!go)return;
 function fillLeagues(){league.innerHTML=leagues.filter(a=>a[0]===sport.value).map(a=>'<option value="'+esc(a[2])+'">'+esc(a[1])+'</option>').join("");loadTeams()}
-async function loadTeams(){const id=++epoch;team.disabled=true;go.disabled=true;team.innerHTML='<option>載入球隊中…</option>';notice("正在載入聯賽球隊…");try{
-const d=await json(src+league.value+"/teams?limit=500");
+async function loadTeams(){const id=++epoch,lg=league.value;team.disabled=true;go.disabled=true;team.innerHTML='<option>載入球隊中…</option>';notice("正在載入聯賽球隊…");
+try{
+let teams=[];let source="球隊名單";
+try{const d=await json(src+lg+"/teams?limit=500");const groups=d.sports?.flatMap(s=>(s.leagues||[]).flatMap(l=>l.teams||[]))||d.teams||[];teams=groups.map(t=>t.team||t).filter(x=>x?.id)}catch(e){}
+if(!teams.length){source="近期公開賽程";teams=discoverTeams(await leagueEvents(lg,8))}
 if(id!==epoch)return;
-const groups=d.sports?.flatMap(s=>(s.leagues||[]).flatMap(l=>l.teams||[]))||[];
-const teams=groups.map(t=>t.team||t).filter(x=>x?.id).sort((a,b)=>String(a.displayName||a.name).localeCompare(String(b.displayName||b.name),"zh-Hant"));
-if(!teams.length)throw Error("未取得球隊清單");
-team.innerHTML=teams.map(t=>'<option value="'+esc(t.id)+'">'+esc(t.displayName||t.name||t.id)+'</option>').join("");
+const unique=[...new Map(teams.map(t=>[String(t.id),t])).values()].sort((a,b)=>String(a.displayName||a.name).localeCompare(String(b.displayName||b.name),"zh-Hant"));
+if(!unique.length)throw Error("近期賽程尚無可辨識球隊");
+knownTeams.set(lg,unique);
+team.innerHTML=unique.map(t=>'<option value="'+esc(t.id)+'">'+esc(t.displayName||t.name||t.id)+'</option>').join("");
 team.disabled=false;go.disabled=false;await loadTeam();
-}catch(e){if(id!==epoch)return;team.innerHTML='<option value="">來源暫無資料</option>';notice("此聯賽暫時無法取得球隊名單，可能尚未接通或資料來源受限。請選擇其他聯賽。")}}
+}catch(e){if(id!==epoch)return;team.innerHTML='<option value="">此聯賽資料暫不可用</option>';notice("球隊清單與備用賽程來源均無法取得資料。這不代表聯賽沒有比賽；請切換其他聯賽或稍後再試。");go.disabled=false}}
 function competitors(e){return e.competitions?.[0]?.competitors||[]}
 function teamResult(e,id){const t=competitors(e).find(x=>String(x.team?.id)===String(id));if(!t)return null;const opp=competitors(e).find(x=>x!==t);let result=t.winner===true?"勝":opp?.winner===true?"負":null;if(!result){const a=Number(t.score),b=Number(opp?.score);if(Number.isFinite(a)&&Number.isFinite(b))result=a>b?"勝":a<b?"負":"和"}return {e,t,opp,result}}
 function findPlayerRows(data,type){
@@ -43,10 +49,10 @@ if(athlete?.displayName)list.push({id:String(athlete.id||athlete.displayName),na
 return list}
 async function loadTeam(){if(!team.value)return;const id=++epoch,lg=league.value,tid=team.value,kind=sport.value,teamName=team.selectedOptions[0]?.textContent||"球隊";go.disabled=true;notice("正在取得 "+teamName+" 最近五場已完賽資料…");
 try{
-const schedule=await json(src+lg+"/teams/"+encodeURIComponent(tid)+"/schedule?season="+new Date().getFullYear());
-if(id!==epoch)return;
-let events=(schedule.events||[]).filter(e=>e.status?.type?.state==="post"&&competitors(e).some(c=>String(c.team?.id)===String(tid))).sort((a,b)=>Date.parse(b.date)-Date.parse(a.date));
-if(events.length<5){const prior=await json(src+lg+"/teams/"+encodeURIComponent(tid)+"/schedule?season="+(new Date().getFullYear()-1)).catch(()=>({events:[]}));if(id!==epoch)return;const seen=new Set(events.map(e=>e.id));events.push(...(prior.events||[]).filter(e=>e.status?.type?.state==="post"&&!seen.has(e.id)&&competitors(e).some(c=>String(c.team?.id)===String(tid))));events.sort((a,b)=>Date.parse(b.date)-Date.parse(a.date))}
+let events=[];try{const schedule=await json(src+lg+"/teams/"+encodeURIComponent(tid)+"/schedule?season="+new Date().getFullYear());events=schedule.events||[]}catch(e){}
+events=events.filter(e=>e.status?.type?.state==="post"&&competitors(e).some(c=>String(c.team?.id)===String(tid)));
+if(events.length<5){try{const backup=await leagueEvents(lg,8);const seen=new Set(events.map(e=>String(e.id)));events.push(...backup.filter(e=>e.status?.type?.state==="post"&&!seen.has(String(e.id))&&competitors(e).some(c=>String(c.team?.id)===String(tid))))}catch(e){}}
+if(id!==epoch)return;events.sort((a,b)=>Date.parse(b.date)-Date.parse(a.date))
 const last=events.slice(0,5).map(e=>teamResult(e,tid)).filter(Boolean);
 if(!last.length){notice("目前沒有取得可核對的已完賽賽事，無法計算近五場勝率。");return}
 const wins=last.filter(x=>x.result==="勝").length,draws=last.filter(x=>x.result==="和").length,losses=last.filter(x=>x.result==="負").length;
