@@ -560,7 +560,7 @@ root.querySelectorAll("[data-expand]").forEach(b=>b.addEventListener("click",()=
   if(!panel)return;
   const open=other===b&&willOpen;
   if((panel.dataset.expanded==="true")!==open)toggleDetail(panel,open);
-  other.textContent=open?"−":"詳情";
+  other.textContent=open?"收合":"詳情";
   other.setAttribute("aria-expanded",open?"true":"false");
  });
 }));root.querySelectorAll(".collapse").forEach(b=>b.addEventListener("click",()=>{let t=b.closest(".league").querySelector(".table-wrap");t.hidden=!t.hidden;b.textContent=t.hidden?"+":"−"}))}
@@ -721,4 +721,25 @@ td{font-size:14px;padding:13px}
 .hz-fixture-detail-item strong small{font-size:12px;font-weight:500;color:#b0cbd3}
 @media(max-width:1000px){.hz-fixture-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hz-fixture-detail-teams{grid-column:span 2}}
 @media(max-width:600px){.hz-fixture-detail-card{padding:13px}.hz-fixture-detail-grid{grid-template-columns:1fr}.hz-fixture-detail-teams{grid-column:auto}.hz-detail-motion-inner{padding:9px}}
+</style><style id="hz-fixture-detail-button">
+/* Replace the old 26px circular expand control with a single horizontal button. */
+#fixtures button.expand,#history button.expand{
+ display:inline-flex!important;align-items:center!important;justify-content:center!important;
+ width:78px!important;min-width:78px!important;height:36px!important;
+ padding:0 10px!important;border-radius:8px!important;
+ background:#10313d!important;border:1px solid #397385!important;
+ color:#def7fc!important;font-size:13px!important;font-weight:700!important;
+ line-height:1!important;white-space:nowrap!important;word-break:keep-all!important;
+ cursor:pointer;transition:background .2s ease,border-color .2s ease,transform .18s ease;
+}
+#fixtures button.expand:hover,#history button.expand:hover{background:#17495a!important;border-color:#95d7a6!important}
+#fixtures button.expand:active,#history button.expand:active{transform:scale(.97)}
+#fixtures button.expand[aria-expanded="true"],#history button.expand[aria-expanded="true"]{background:#20483b!important;border-color:#88cf68!important;color:#caff9d!important}
+#fixtures .table-wrap th:last-child,#fixtures .table-wrap td:last-child,
+#history .table-wrap th:last-child,#history .table-wrap td:last-child{min-width:96px;text-align:center;white-space:nowrap}
+@media(max-width:600px){
+ #fixtures button.expand,#history button.expand{width:70px!important;min-width:70px!important;height:34px!important}
+ #fixtures .table-wrap th:last-child,#fixtures .table-wrap td:last-child,
+ #history .table-wrap th:last-child,#history .table-wrap td:last-child{min-width:84px}
+}
 </style></body></html>
