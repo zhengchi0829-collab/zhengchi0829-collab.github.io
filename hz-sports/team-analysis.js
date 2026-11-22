@@ -3,7 +3,7 @@
 const $=id=>document.getElementById(id);
 const src="https://site.api.espn.com/apis/site/v2/sports/";
 const leagues=[["足球","英超","soccer/eng.1"],["足球","西甲","soccer/esp.1"],["足球","德甲","soccer/ger.1"],["足球","義甲","soccer/ita.1"],["足球","法甲","soccer/fra.1"],["足球","歐冠","soccer/uefa.champions"],["籃球","NBA","basketball/nba"],["籃球","NCAA","basketball/mens-college-basketball"],["籃球","NBL","basketball/nbl"],["籃球","TPBL","basketball/tpbl"],["棒球","MLB","baseball/mlb"],["棒球","NPB","baseball/npb"],["棒球","KBO","baseball/kbo"],["棒球","CPBL","baseball/cpbl"],["棒球","MiLB","baseball/milb"]];
-let epoch=0;const leagueCache=new Map();const knownTeams=new Map();
+let epoch=0;const leagueCache=new Map();const knownTeams=new Map();const displayName=t=>window.hzTeamBilingual?.(t)||t?.displayName||t?.name||"待確認";const logoOf=t=>window.hzTeamLogo?.(t)||"";const logoImg=(t,cls="")=>{const url=logoOf(t);return url?'<img class="'+cls+'" src="'+esc(url)+'" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.hidden=true">':'<span aria-hidden="true">🏅</span>'};
 const esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmtDate=x=>new Date(x).toLocaleDateString("zh-TW",{timeZone:"Asia/Taipei",month:"2-digit",day:"2-digit"});
 const notice=(t)=>{$("hz-team-results").innerHTML='<div class="hz-team-status">'+esc(t)+'</div>'};
@@ -23,9 +23,10 @@ if(id!==epoch)return;
 const unique=[...new Map(teams.map(t=>[String(t.id),t])).values()].sort((a,b)=>String(a.displayName||a.name).localeCompare(String(b.displayName||b.name),"zh-Hant"));
 if(!unique.length)throw Error("近期賽程尚無可辨識球隊");
 knownTeams.set(lg,unique);
-team.innerHTML=unique.map(t=>'<option value="'+esc(t.id)+'">'+esc(window.hzLocalizedTeam?.(t)||t.displayName||t.name||t.id)+'</option>').join("");
-team.disabled=false;go.disabled=false;await loadTeam();
+team.innerHTML=unique.map(t=>'<option value="'+esc(t.id)+'">'+esc(displayName(t))+'</option>').join("");
+team.disabled=false;go.disabled=false;renderSelectedTeam();await loadTeam();
 }catch(e){if(id!==epoch)return;team.innerHTML='<option value="">此聯賽資料暫不可用</option>';notice("球隊清單與備用賽程來源均無法取得資料。這不代表聯賽沒有比賽；請切換其他聯賽或稍後再試。");go.disabled=false}}
+function renderSelectedTeam(){const preview=$("hz-team-selected-preview");if(!preview)return;const t=(knownTeams.get(league.value)||[]).find(x=>String(x.id)===String(team.value));preview.innerHTML=t?logoImg(t,"hz-selected-logo")+"<b>"+esc(displayName(t))+"</b>":""}
 function competitors(e){return e.competitions?.[0]?.competitors||[]}
 function teamResult(e,id){const t=competitors(e).find(x=>String(x.team?.id)===String(id));if(!t)return null;const opp=competitors(e).find(x=>x!==t);let result=t.winner===true?"勝":opp?.winner===true?"負":null;if(!result){const a=Number(t.score),b=Number(opp?.score);if(Number.isFinite(a)&&Number.isFinite(b))result=a>b?"勝":a<b?"負":"和"}return {e,t,opp,result}}
 function findPlayerRows(data,type){
@@ -47,7 +48,7 @@ const athlete=ev.athletes?.[0]?.athlete||ev.athletes?.[0]||ev.athlete;
 if(athlete?.displayName)list.push({id:String(athlete.id||athlete.displayName),name:athlete.displayName,value:1,teamId:String(ev.team?.id||"")})
 }}
 return list}
-async function loadTeam(){if(!team.value)return;const id=++epoch,lg=league.value,tid=team.value,kind=sport.value,teamName=team.selectedOptions[0]?.textContent||"球隊";go.disabled=true;notice("正在取得 "+teamName+" 最近五場已完賽資料…");
+async function loadTeam(){if(!team.value)return;const id=++epoch,lg=league.value,tid=team.value,kind=sport.value,teamObj=(knownTeams.get(lg)||[]).find(x=>String(x.id)===String(tid)),teamName=teamObj?displayName(teamObj):team.selectedOptions[0]?.textContent||"球隊";renderSelectedTeam();go.disabled=true;notice("正在取得 "+teamName+" 最近五場已完賽資料…");
 try{
 let events=[];try{const schedule=await json(src+lg+"/teams/"+encodeURIComponent(tid)+"/schedule?season="+new Date().getFullYear());events=schedule.events||[]}catch(e){}
 events=events.filter(e=>e.status?.type?.state==="post"&&competitors(e).some(c=>String(c.team?.id)===String(tid)));
@@ -58,8 +59,8 @@ if(!last.length){notice("目前沒有取得可核對的已完賽賽事，無法�
 const wins=last.filter(x=>x.result==="勝").length,draws=last.filter(x=>x.result==="和").length,losses=last.filter(x=>x.result==="負").length;
 const rate=Math.round(wins/last.length*1000)/10;
 const label=kind==="足球"?"進球":kind==="籃球"?"得分":"全壘打";
-const fixtureHtml=last.map(x=>'<tr><td>'+fmtDate(x.e.date)+'</td><td>'+esc(window.hzLocalizedTeam?.(x.opp?.team)||x.opp?.team?.displayName||"未知對手")+'</td><td>'+esc(x.t.score??"—")+" : "+esc(x.opp?.score??"—")+'</td><td><b>'+esc(x.result||"未知")+'</b></td></tr>').join("");
-$("hz-team-results").innerHTML='<div class="hz-team-tiles"><div class="hz-team-tile"><small>最近已完賽場次</small><strong>'+last.length+' / 5</strong></div><div class="hz-team-tile"><small>近五場勝率</small><strong>'+rate+'%</strong></div><div class="hz-team-tile"><small>勝 / 和 / 負</small><strong>'+wins+' / '+draws+' / '+losses+'</strong></div></div><h3>'+esc(teamName)+'｜近期戰績</h3><div class="table-wrap"><table><thead><tr><th>日期</th><th>對手</th><th>比分（本隊：對手）</th><th>結果</th></tr></thead><tbody>'+fixtureHtml+'</tbody></table></div><h3>主力球員｜最近 '+last.length+' 場'+label+'數</h3><div id="hz-player-scoring" class="hz-team-status">正在取得公開賽事技術統計…</div><p class="subtle">資料來源：ESPN 公開賽程與比賽技術統計。勝率以取得的最近最多五場已完賽為分母；和局不計勝場。球員表現只統計有核實技術統計的比賽，不代表完整賽季數據。</p>';
+const fixtureHtml=last.map(x=>'<tr><td>'+fmtDate(x.e.date)+'</td><td><span class="hz-team-matchname">'+logoImg(x.opp?.team,"hz-match-logo")+'<span>'+esc(displayName(x.opp?.team))+"</span></span></td>"<td>'+esc(x.t.score??"—")+" : "+esc(x.opp?.score??"—")+'</td><td><b>'+esc(x.result||"未知")+'</b></td></tr>').join("");
+$("hz-team-results").innerHTML='<div class="hz-analytics-teamheading">'+logoImg(teamObj,"hz-heading-logo")+'<h2>'+esc(teamName)+'</h2></div><div class="hz-team-tiles"><div class="hz-team-tile"><small>最近已完賽場次</small><strong>'+last.length+' / 5</strong></div><div class="hz-team-tile"><small>近五場勝率</small><strong>'+rate+'%</strong></div><div class="hz-team-tile"><small>勝 / 和 / 負</small><strong>'+wins+' / '+draws+' / '+losses+'</strong></div></div><h3>'+esc(teamName)+'｜近期戰績</h3><div class="table-wrap"><table><thead><tr><th>日期</th><th>對手</th><th>比分（本隊：對手）</th><th>結果</th></tr></thead><tbody>'+fixtureHtml+'</tbody></table></div><h3>主力球員｜最近 '+last.length+' 場'+label+'數</h3><div id="hz-player-scoring" class="hz-team-status">正在取得公開賽事技術統計…</div><p class="subtle">資料來源：ESPN 公開賽程與比賽技術統計。勝率以取得的最近最多五場已完賽為分母；和局不計勝場。球員表現只統計有核實技術統計的比賽，不代表完整賽季數據。</p>';
 const replies=await Promise.allSettled(last.map(x=>json(src+lg+"/summary?event="+encodeURIComponent(x.e.id))));
 if(id!==epoch)return;
 const sums=new Map(),games=new Set();
