@@ -519,7 +519,38 @@ let d=local(new Date(x.event.date)),t=x.t,score=status(x.event)==="已完賽"?"�
 return '<tr><td class="time">'+d[0]+'<small>'+d[1]+'</small></td><td><div class="teams">'+team(t.away)+'<span class="vs">VS</span>'+team(t.home)+'</div></td><td><span class="match-state '+(status(x.event)==="已完賽"?"match-finished":status(x.event)==="進行中"?"match-live":"match-upcoming")+'">'+status(x.event)+score+'</span></td><td>'+(picks?'<button type="button" class="subscription-unlock" data-subscription-notice aria-label="訂閱解鎖 AI 預測">訂閱解鎖</button>':'<button class="expand" data-expand="'+i+'">詳情</button>')+'</td></tr>'+(picks?'':'<tr class="detail" hidden><td colspan="4"><div class="hz-fixture-detail-card"><div class="hz-fixture-detail-top"><span class="hz-fixture-detail-title">賽事資訊</span><span class="hz-fixture-detail-tag">MATCH DETAILS</span></div><div class="hz-fixture-detail-grid"><div class="hz-fixture-detail-item hz-fixture-detail-teams"><span>對戰組合</span><strong>'+escape(window.hzTeamBilingual?.(t.away.team)||t.away.team?.displayName||"客隊")+' <em>VS</em> '+escape(window.hzTeamBilingual?.(t.home.team)||t.home.team?.displayName||"主隊")+'</strong></div><div class="hz-fixture-detail-item"><span>所屬聯賽</span><strong>'+escape(x.def[1])+'</strong></div><div class="hz-fixture-detail-item"><span>開賽時間</span><strong>'+escape(d.join(" "))+' <small>台灣時間</small></strong></div><div class="hz-fixture-detail-item"><span>資料來源</span><strong>ESPN <small>公開賽程</small></strong></div></div></div></td></tr>')
 }).join("")+'</tbody></table></div>'}
 
-function renderGroups(root,rows,isPick){let groups=new Map();rows.forEach(x=>{if(!groups.has(x.def[2]))groups.set(x.def[2],[]);groups.get(x.def[2]).push(x)});root.innerHTML=groups.size?[...groups.values()].map(g=>'<div class="league"><div class="league-head"><span>'+g[0].def[3]+'</span><span>'+escape(g[0].def[1])+'</span><small>'+g.length+' 場</small><button class="collapse">−</button></div>'+showTable(g,isPick)+'</div>').join(""):'<div class="empty">目前沒有可顯示的賽程；部分聯賽可能尚未接通網站資料來源，並不代表沒有比賽。</div>';root.querySelectorAll("[data-subscription-notice]").forEach(b=>b.addEventListener("click",()=>{window.alert("AI 預測訂閱功能尚未開放，敬請留意後續公告。") }));root.querySelectorAll("[data-expand]").forEach(b=>b.addEventListener("click",()=>{const tr=b.closest("tr").nextElementSibling;const willOpen=tr.hidden;root.querySelectorAll("[data-expand]").forEach(other=>{const panel=other.closest("tr").nextElementSibling;if(panel){panel.hidden=true;other.textContent="詳情";other.setAttribute("aria-expanded","false")}});if(willOpen){tr.hidden=false;b.textContent="−";b.setAttribute("aria-expanded","true")}}));root.querySelectorAll(".collapse").forEach(b=>b.addEventListener("click",()=>{let t=b.closest(".league").querySelector(".table-wrap");t.hidden=!t.hidden;b.textContent=t.hidden?"+":"−"}))}
+function renderGroups(root,rows,isPick){let groups=new Map();rows.forEach(x=>{if(!groups.has(x.def[2]))groups.set(x.def[2],[]);groups.get(x.def[2]).push(x)});root.innerHTML=groups.size?[...groups.values()].map(g=>'<div class="league"><div class="league-head"><span>'+g[0].def[3]+'</span><span>'+escape(g[0].def[1])+'</span><small>'+g.length+' 場</small><button class="collapse">−</button></div>'+showTable(g,isPick)+'</div>').join(""):'<div class="empty">目前沒有可顯示的賽程；部分聯賽可能尚未接通網站資料來源，並不代表沒有比賽。</div>';root.querySelectorAll("[data-subscription-notice]").forEach(b=>b.addEventListener("click",()=>{window.alert("AI 預測訂閱功能尚未開放，敬請留意後續公告。") }));const detailAnimations=new WeakMap();
+function toggleDetail(row,open){
+ if(!row)return;
+ const prev=detailAnimations.get(row);
+ if(prev){prev.cancel();detailAnimations.delete(row)}
+ const card=row.querySelector(".hz-fixture-detail-card");
+ const oldHidden=row.hidden;
+ row.dataset.expanded=open?"true":"false";
+ if(!card||!card.animate||window.matchMedia("(prefers-reduced-motion: reduce)").matches){row.hidden=!open;return}
+ row.hidden=false;
+ const fullHeight=card.offsetHeight;
+ if(!oldHidden&&open)return;
+ card.style.overflow="hidden";
+ const frames=open
+  ?[{height:"0px",opacity:0,transform:"translateY(-8px)"},{height:fullHeight+"px",opacity:1,transform:"translateY(0)"}]
+  :[{height:fullHeight+"px",opacity:1,transform:"translateY(0)"},{height:"0px",opacity:0,transform:"translateY(-8px)"}];
+ const animation=card.animate(frames,{duration:open?300:240,easing:open?"cubic-bezier(.2,.75,.2,1)":"cubic-bezier(.4,0,.8,.4)"});
+ detailAnimations.set(row,animation);
+ animation.finished.then(()=>{if(detailAnimations.get(row)!==animation)return;detailAnimations.delete(row);card.style.overflow="";if(!open)row.hidden=true}).catch(()=>{});
+}
+root.querySelectorAll("[data-expand]").forEach(b=>b.addEventListener("click",()=>{
+ const target=b.closest("tr").nextElementSibling;
+ const willOpen=target.dataset.expanded!=="true";
+ root.querySelectorAll("[data-expand]").forEach(other=>{
+  const panel=other.closest("tr").nextElementSibling;
+  if(!panel)return;
+  const open=other===b&&willOpen;
+  if((panel.dataset.expanded==="true")!==open)toggleDetail(panel,open);
+  other.textContent=open?"−":"詳情";
+  other.setAttribute("aria-expanded",open?"true":"false");
+ });
+}));root.querySelectorAll(".collapse").forEach(b=>b.addEventListener("click",()=>{let t=b.closest(".league").querySelector(".table-wrap");t.hidden=!t.hidden;b.textContent=t.hidden?"+":"−"}))}
 async function fetchLeague(def,days,past){
 if(leagueUnsupported(def))throw Error("SOURCE_NOT_CONNECTED");
 const now=Date.now(),day=86400000,from=past?now-days*day:now-day,to=past?now:now+days*day;
