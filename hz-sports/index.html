@@ -516,28 +516,41 @@ function showTable(data,picks){
 if(!data.length)return '<div class="empty">目前沒有符合條件的賽事。</div>';
 return '<div class="table-wrap"><table style="min-width:570px"><thead><tr><th>時間</th><th>對戰組合（客 VS 主）</th><th>結果</th><th>'+(picks?'AI 預測':'詳細')+'</th></tr></thead><tbody>'+data.map((x,i)=>{
 let d=local(new Date(x.event.date)),t=x.t,score=status(x.event)==="已完賽"?"　"+escape(t.away.score??"—")+":"+escape(t.home.score??"—"):"";
-return '<tr><td class="time">'+d[0]+'<small>'+d[1]+'</small></td><td><div class="teams">'+team(t.away)+'<span class="vs">VS</span>'+team(t.home)+'</div></td><td><span class="match-state '+(status(x.event)==="已完賽"?"match-finished":status(x.event)==="進行中"?"match-live":"match-upcoming")+'">'+status(x.event)+score+'</span></td><td>'+(picks?'<button type="button" class="subscription-unlock" data-subscription-notice aria-label="訂閱解鎖 AI 預測">訂閱解鎖</button>':'<button class="expand" data-expand="'+i+'">詳情</button>')+'</td></tr>'+(picks?'':'<tr class="detail" hidden><td colspan="4"><div class="hz-fixture-detail-card"><div class="hz-fixture-detail-top"><span class="hz-fixture-detail-title">賽事資訊</span><span class="hz-fixture-detail-tag">MATCH DETAILS</span></div><div class="hz-fixture-detail-grid"><div class="hz-fixture-detail-item hz-fixture-detail-teams"><span>對戰組合</span><strong>'+escape(window.hzTeamBilingual?.(t.away.team)||t.away.team?.displayName||"客隊")+' <em>VS</em> '+escape(window.hzTeamBilingual?.(t.home.team)||t.home.team?.displayName||"主隊")+'</strong></div><div class="hz-fixture-detail-item"><span>所屬聯賽</span><strong>'+escape(x.def[1])+'</strong></div><div class="hz-fixture-detail-item"><span>開賽時間</span><strong>'+escape(d.join(" "))+' <small>台灣時間</small></strong></div><div class="hz-fixture-detail-item"><span>資料來源</span><strong>ESPN <small>公開賽程</small></strong></div></div></div></td></tr>')
+return '<tr><td class="time">'+d[0]+'<small>'+d[1]+'</small></td><td><div class="teams">'+team(t.away)+'<span class="vs">VS</span>'+team(t.home)+'</div></td><td><span class="match-state '+(status(x.event)==="已完賽"?"match-finished":status(x.event)==="進行中"?"match-live":"match-upcoming")+'">'+status(x.event)+score+'</span></td><td>'+(picks?'<button type="button" class="subscription-unlock" data-subscription-notice aria-label="訂閱解鎖 AI 預測">訂閱解鎖</button>':'<button class="expand" data-expand="'+i+'">詳情</button>')+'</td></tr>'+(picks?'':'<tr class="detail" hidden><td colspan="4"><div class="hz-detail-motion"><div class="hz-detail-motion-inner"><div class="hz-fixture-detail-card"><div class="hz-fixture-detail-top"><span class="hz-fixture-detail-title">賽事資訊</span><span class="hz-fixture-detail-tag">MATCH DETAILS</span></div><div class="hz-fixture-detail-grid"><div class="hz-fixture-detail-item hz-fixture-detail-teams"><span>對戰組合</span><strong>'+escape(window.hzTeamBilingual?.(t.away.team)||t.away.team?.displayName||"客隊")+' <em>VS</em> '+escape(window.hzTeamBilingual?.(t.home.team)||t.home.team?.displayName||"主隊")+'</strong></div><div class="hz-fixture-detail-item"><span>所屬聯賽</span><strong>'+escape(x.def[1])+'</strong></div><div class="hz-fixture-detail-item"><span>開賽時間</span><strong>'+escape(d.join(" "))+' <small>台灣時間</small></strong></div><div class="hz-fixture-detail-item"><span>資料來源</span><strong>ESPN <small>公開賽程</small></strong></div></div></div></div></div></td></tr>')
 }).join("")+'</tbody></table></div>'}
 
 function renderGroups(root,rows,isPick){let groups=new Map();rows.forEach(x=>{if(!groups.has(x.def[2]))groups.set(x.def[2],[]);groups.get(x.def[2]).push(x)});root.innerHTML=groups.size?[...groups.values()].map(g=>'<div class="league"><div class="league-head"><span>'+g[0].def[3]+'</span><span>'+escape(g[0].def[1])+'</span><small>'+g.length+' 場</small><button class="collapse">−</button></div>'+showTable(g,isPick)+'</div>').join(""):'<div class="empty">目前沒有可顯示的賽程；部分聯賽可能尚未接通網站資料來源，並不代表沒有比賽。</div>';root.querySelectorAll("[data-subscription-notice]").forEach(b=>b.addEventListener("click",()=>{window.alert("AI 預測訂閱功能尚未開放，敬請留意後續公告。") }));const detailAnimations=new WeakMap();
 function toggleDetail(row,open){
  if(!row)return;
- const prev=detailAnimations.get(row);
- if(prev){prev.cancel();detailAnimations.delete(row)}
- const card=row.querySelector(".hz-fixture-detail-card");
- const oldHidden=row.hidden;
+ const wrapper=row.querySelector(".hz-detail-motion");
+ const previous=detailAnimations.get(row);
+ const current=wrapper&&!row.hidden?wrapper.getBoundingClientRect().height:0;
+ if(previous){previous.cancel();detailAnimations.delete(row)}
  row.dataset.expanded=open?"true":"false";
- if(!card||!card.animate||window.matchMedia("(prefers-reduced-motion: reduce)").matches){row.hidden=!open;return}
+ if(!wrapper||!wrapper.animate||window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+  if(wrapper)wrapper.style.height="";
+  row.hidden=!open;
+  return;
+ }
  row.hidden=false;
- const fullHeight=card.offsetHeight;
- if(!oldHidden&&open)return;
- card.style.overflow="hidden";
- const frames=open
-  ?[{height:"0px",opacity:0,transform:"translateY(-8px)"},{height:fullHeight+"px",opacity:1,transform:"translateY(0)"}]
-  :[{height:fullHeight+"px",opacity:1,transform:"translateY(0)"},{height:"0px",opacity:0,transform:"translateY(-8px)"}];
- const animation=card.animate(frames,{duration:open?300:240,easing:open?"cubic-bezier(.2,.75,.2,1)":"cubic-bezier(.4,0,.8,.4)"});
+ const full=wrapper.scrollHeight;
+ const from=current;
+ const to=open?full:0;
+ if(Math.abs(from-to)<1){
+  wrapper.style.height=open?"auto":"0px";
+  if(!open)row.hidden=true;
+  return;
+ }
+ wrapper.style.height=from+"px";
+ const animation=wrapper.animate([{height:from+"px"},{height:to+"px"}],
+  {duration:open?260:200,easing:open?"cubic-bezier(.22,.72,.2,1)":"cubic-bezier(.32,0,.67,1)"});
  detailAnimations.set(row,animation);
- animation.finished.then(()=>{if(detailAnimations.get(row)!==animation)return;detailAnimations.delete(row);card.style.overflow="";if(!open)row.hidden=true}).catch(()=>{});
+ animation.finished.then(()=>{
+  if(detailAnimations.get(row)!==animation)return;
+  detailAnimations.delete(row);
+  wrapper.style.height=open?"auto":"0px";
+  if(!open)row.hidden=true;
+ }).catch(()=>{});
 }
 root.querySelectorAll("[data-expand]").forEach(b=>b.addEventListener("click",()=>{
  const target=b.closest("tr").nextElementSibling;
@@ -693,7 +706,9 @@ td{font-size:14px;padding:13px}
 #picks .match-state.match-upcoming,#fixtures .match-state.match-upcoming,#history .match-state.match-upcoming{background:#173e65!important;color:#a9dcff!important;border:1px solid #397eae}
 #picks .match-state.match-live,#fixtures .match-state.match-live,#history .match-state.match-live{background:#633b15!important;color:#ffd39b!important;border:1px solid #ae722d}
 </style><style id="hz-fixture-detail-refresh">
-#fixtures tr.detail td,#history tr.detail td{padding:10px 14px 18px!important;background:#071d27!important}
+#fixtures tr.detail td,#history tr.detail td{padding:0!important;background:#071d27!important}
+.hz-detail-motion{height:0;overflow:hidden}
+.hz-detail-motion-inner{padding:10px 14px 18px}
 .hz-fixture-detail-card{border:1px solid #315867;border-radius:13px;background:linear-gradient(135deg,#10303e,#0a222e);padding:17px 20px;box-shadow:0 10px 26px #0002}
 .hz-fixture-detail-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #28505c}
 .hz-fixture-detail-title{font-size:15px;font-weight:800;color:#e7f7fc}
@@ -705,5 +720,5 @@ td{font-size:14px;padding:13px}
 .hz-fixture-detail-item strong em{font-size:11px;font-style:normal;color:#a7da5c;margin:0 5px}
 .hz-fixture-detail-item strong small{font-size:12px;font-weight:500;color:#b0cbd3}
 @media(max-width:1000px){.hz-fixture-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hz-fixture-detail-teams{grid-column:span 2}}
-@media(max-width:600px){.hz-fixture-detail-card{padding:13px}.hz-fixture-detail-grid{grid-template-columns:1fr}.hz-fixture-detail-teams{grid-column:auto}#fixtures tr.detail td,#history tr.detail td{padding:9px!important}}
+@media(max-width:600px){.hz-fixture-detail-card{padding:13px}.hz-fixture-detail-grid{grid-template-columns:1fr}.hz-fixture-detail-teams{grid-column:auto}.hz-detail-motion-inner{padding:9px}}
 </style></body></html>
