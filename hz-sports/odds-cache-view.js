@@ -149,32 +149,47 @@ function fillLeagues(prefix){
 function table(head,body){
  return '<div class="hz-r-scroll"><table class="hz-r-table"><thead><tr>'+head.map(x=>'<th>'+esc(x)+'</th>').join("")+'</tr></thead><tbody>'+body+'</tbody></table></div>';
 }
-let injuryReq=0,injuryData=[],injuryReady=false,injuryReadAt=null,injurySource="";
+let injuryReq=0,injuryData=[],injuryReady=false,injuryReadAt=null,injurySource="",injuryCacheState="",injuryCheckedDay="",injuryLoading=false;
+const taipeiDay=()=>new Intl.DateTimeFormat("sv-SE",{timeZone:"Asia/Taipei",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+async function dailyInjuryReport(league){
+ const url="https://raw.githubusercontent.com/zhengchi0829-collab/zhengchi0829-collab.github.io/main/hz-sports/injury-cache.json";
+ let data;
+ try{data=await json(url,8000)}catch(e){data=await json("./injury-cache.json",5000)}
+ const entry=data?.leagues?.[league];
+ if(!entry||!["ok","stale"].includes(entry.state)||!entry.data||!Number.isFinite(Date.parse(entry.captured_at))||Date.parse(entry.captured_at)>Date.now()+300000)throw Error("NO_VALID_DAILY_REPORT");
+ const stale=entry.state==="stale"||Date.now()-Date.parse(entry.captured_at)>86400000;
+ return {rows:injuryRows(entry.data),capturedAt:entry.captured_at,state:stale?"stale":"daily"};
+}
 function showInjuries(){
  const q=$("hz-injury-search").value.trim().toLowerCase(),team=$("hz-injury-team").value;
  const rows=injuryData.filter(r=>(!team||r.team===team)&&(!q||[r.player,r.team,r.status.label,r.status.raw,r.injury,r.comment,chineseInjury(r)].join(" ").toLowerCase().includes(q)));
  $("hz-injury-kpis").innerHTML=metric("傷停／出賽紀錄",rows.length,"來源列出的人次")+metric("缺陣／傷病名單",rows.filter(r=>r.status.kind==="out").length,"含來源列出的禁賽")+metric("出賽待定",rows.filter(r=>r.status.kind==="warn").length,"含可能出賽、賽前決定");
- const sourceNote='<div class="hz-r-source">資料來源：<a target="_blank" rel="noopener noreferrer" href="'+esc(injurySource)+'">ESPN 公開傷停報告</a>｜讀取時間：'+esc(fmtTime(injuryReadAt))+'（不等於官方發布時間）</div>';
+ const sourceNote='<div class="hz-r-source">資料來源：<a target="_blank" rel="noopener noreferrer" href="'+esc(injurySource)+'">ESPN 公開傷停報告</a>｜讀取時間：'+esc(fmtTime(injuryReadAt))+'（不等於官方發布時間）'+(injuryCacheState==="stale"?"｜上次有效紀錄，今日來源尚未取得":injuryCacheState==="daily"?"｜每日排程快取":"｜本次直接讀取")+'</div>';
  if(!rows.length){$("hz-injury-results").innerHTML=info(injuryData.length?"沒有符合篩選條件的球員。":"來源本次未列出傷停紀錄，不代表全員健康。")+sourceNote;return}
  $("hz-injury-results").innerHTML=table(["球員／球隊","出賽狀態","傷病原因（中文）","紀錄日期","預計回歸（來源）"],rows.map(r=>'<tr><td><div class="hz-r-player">'+esc(r.player)+'</div><div class="hz-r-team">'+esc(r.team)+'</div></td><td><span class="hz-r-status '+r.status.kind+'">'+esc(r.status.label)+'</span><small class="hz-r-note">'+esc(r.status.raw)+'</small></td><td>'+injuryReasonHTML(r)+'</td><td>'+esc(fmtTime(r.date))+'</td><td>'+esc(fmtTime(r.returnDate))+'</td></tr>').join(""))+sourceNote;
 }
 async function loadInjuries(){
  const id=++injuryReq,lg=$("hz-injury-league").value,btn=$("hz-injury-refresh");
- injuryReady=true;injuryData=[];btn.disabled=true;btn.textContent="更新中…";
+ injuryReady=true;injuryLoading=true;injuryCheckedDay=taipeiDay();injuryData=[];btn.disabled=true;btn.textContent="更新中…";
+ const selectedTeam=$("hz-injury-team").value;
  $("hz-injury-status").textContent="正在讀取 "+(defs.find(x=>x[2]===lg)?.[1]||"聯賽")+" 傷停報告…";
  $("hz-injury-team").innerHTML='<option value="">全部球隊</option>';
  $("hz-injury-kpis").innerHTML="";
  $("hz-injury-results").innerHTML=info("查詢來源資料中…");
  try{
- const data=await source(lg+"/injuries");if(id!==injuryReq)return;
- injuryData=injuryRows(data);injuryReadAt=new Date().toISOString();injurySource=base+lg+"/injuries";
+ let report;
+ try{const data=await source(lg+"/injuries");report={rows:injuryRows(data),capturedAt:new Date().toISOString(),state:"live"}}
+ catch(e){report=await dailyInjuryReport(lg)}
+ if(id!==injuryReq)return;
+ injuryData=report.rows;injuryReadAt=report.capturedAt;injuryCacheState=report.state;injurySource=base+lg+"/injuries";
  const teams=[...new Set(injuryData.map(r=>r.team))].sort((a,b)=>a.localeCompare(b,"zh-Hant"));
  $("hz-injury-team").innerHTML='<option value="">全部球隊</option>'+teams.map(t=>'<option value="'+esc(t)+'">'+esc(t)+'</option>').join("");
- $("hz-injury-status").textContent="來源回傳 "+injuryData.length+" 筆傷停／出賽狀態紀錄。";
+ if(teams.includes(selectedTeam))$("hz-injury-team").value=selectedTeam;
+ $("hz-injury-status").textContent=(injuryCacheState==="stale"?"即時來源暫不可用，顯示最後有效紀錄。":injuryCacheState==="daily"?"已讀取每日更新快取。":"已直接讀取來源。")+" 共 "+injuryData.length+" 筆傷停／出賽狀態紀錄。";
  showInjuries();
  }catch(e){if(id!==injuryReq)return;$("hz-injury-status").textContent="此聯賽目前無法取得有效傷停報告。";
  $("hz-injury-results").innerHTML=info("來源未提供此聯賽的傷停欄位，或連線暫時失敗。這不代表沒有傷病。")+'<p class="hz-r-source"><a href="'+esc(base+lg+"/injuries")+'" target="_blank" rel="noopener noreferrer">檢查 ESPN 原始來源</a></p>';
- }finally{if(id===injuryReq){btn.disabled=false;btn.textContent="↻ 更新傷停"}}
+ }finally{if(id===injuryReq){injuryLoading=false;btn.disabled=false;btn.textContent="↻ 更新傷停"}}
 }
 function finalMatch(e){
  const c=e?.competitions?.[0],st=c?.status?.type||e?.status?.type;
@@ -302,8 +317,12 @@ function route(){
  if(!names[id])return;
  const crumb=$("current-page");if(crumb)crumb.textContent=names[id];
  side.querySelectorAll(".side-item").forEach(a=>a.classList.toggle("active",a.dataset.target===id));
- if(id==="injuries"&&!injuryReady)loadInjuries();
+ if(id==="injuries"&&!injuryLoading&&(!injuryReady||injuryCheckedDay!==taipeiDay()))loadInjuries();
  if(id==="prediction-performance"&&!perfReady)loadPerformance();
 }
-window.addEventListener("hashchange",route);route();
+window.addEventListener("hashchange",route);
+function refreshInjuryDay(){if(location.hash==="#injuries"&&!document.hidden&&!injuryLoading&&injuryCheckedDay!==taipeiDay())loadInjuries()}
+document.addEventListener("visibilitychange",refreshInjuryDay);
+window.setInterval(refreshInjuryDay,60000);
+route();
 })();
