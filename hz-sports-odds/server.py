@@ -80,7 +80,10 @@ def fetch_json(url):
                 oldest = min(cache, key=lambda k: cache[k][0])
                 cache.pop(oldest, None)
         return data, False
-    except (HTTPError, URLError, TimeoutError, ValueError, OSError):
+    except (HTTPError, URLError, TimeoutError, ValueError, OSError) as exc:
+        # Only log host and error category; never leak request parameters or credentials.
+        print("source_failure host=%s type=%s http_status=%s" % (
+            urlparse(url).hostname, type(exc).__name__, getattr(exc, "code", "-")), flush=True)
         with lock:
             if entry and now - entry[0] < STALE_TTL:
                 return entry[1], True
@@ -102,8 +105,11 @@ class Handler(BaseHTTPRequestHandler):
             for k, v in extra.items():
                 self.send_header(k, v)
         self.send_header("Content-Length", str(len(encoded)))
-        self.end_headers()
-        self.wfile.write(encoded)
+        try:
+            self.end_headers()
+            self.wfile.write(encoded)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
 
     def do_OPTIONS(self):
         self.send_response(204)
@@ -134,7 +140,7 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, {"status": "stale", "day": data.get("day"),
                                      "leagues": {}, "source": "third_party_cached"})
                     return
-                allowed = ("足球", "英超", "西甲", "德甲", "義甲", "法甲", "歐冠",
+                allowed = ("足球", "籃球", "棒球", "英超", "西甲", "德甲", "義甲", "法甲", "歐冠",
                            "NBA", "NCAA", "NBL", "TPBL", "MLB", "NPB", "KBO", "CPBL", "MiLB")
                 clean = {}
                 for name, rows in data["leagues"].items():
@@ -151,9 +157,13 @@ class Handler(BaseHTTPRequestHandler):
                     ]
                 self._send(200, {"status": "ok", "day": data["day"],
                                  "captured_at": data.get("captured_at"),
+                                 "source_url": data.get("source_url"),
+                                 "capture_method": data.get("capture_method"),
+                                 "source_note": data.get("source_note"),
                                  "source": "third_party_cached", "leagues": clean},
                            {"X-Hz-Cache": "stale" if stale else "ok"})
-            except Exception:
+            except Exception as exc:
+                print("snapshot_failure type=%s" % type(exc).__name__, flush=True)
                 self._send(502, {"error": "SNAPSHOT_UNAVAILABLE"})
             return
         if url.path != "/api/espn":
@@ -166,7 +176,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             data, stale = fetch_json(raw)
             self._send(200, data, {"X-Hz-Cache": "stale" if stale else "ok"})
-        except Exception:
+        except Exception as exc:
+            print("espn_failure host=%s type=%s" % (urlparse(raw).hostname, type(exc).__name__), flush=True)
             self._send(502, {"error": "UPSTREAM_UNAVAILABLE"})
 
     def log_message(self, fmt, *args):
