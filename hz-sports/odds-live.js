@@ -41,27 +41,82 @@ $match.disabled=!games.length;$refresh.disabled=false;
 if(games.length){status("找到 "+games.length+" 場賽事。請選擇賽事查看盤口。");loadOdds()}
 else{status("此聯賽未來 14 天沒有取得可查詢賽事；部分聯賽尚未提供公開資料。");$detail.innerHTML='<div class="hz-odds-no-data">沒有符合時間範圍的賽事，不代表實際沒有比賽。</div>'}
 }catch(e){if(id!==request)return;$match.innerHTML='<option value="">來源暫不可用</option>';$refresh.disabled=false;status("賽程來源暫時無法存取，請稍後重試。");$detail.innerHTML='<div class="hz-odds-no-data">無法驗證盤口，沒有使用假資料。</div>'}}
-function oddsFromEvent(e){const c=comp(e);return c.odds?.[0]||e.odds?.[0]||null}
-async function getOdds(e,lg){const inline=oddsFromEvent(e);if(inline)return inline;
-const summary=await get(base+lg+"/summary?event="+encodeURIComponent(e.id)).catch(()=>null);
-const inSummary=summary?.header?.competitions?.[0]?.odds?.[0]||summary?.pickcenter?.[0]||summary?.odds?.[0];if(inSummary)return inSummary;
-const id=e.id,cid=comp(e).id||id;
-const parts=lg.split("/");
-const core="https://sports.core.api.espn.com/v2/sports/"+parts[0]+"/leagues/"+parts[1]+"/events/"+encodeURIComponent(id)+"/competitions/"+encodeURIComponent(cid)+"/odds?limit=10";
-const res=await get(core).catch(()=>null);
-for(const item of (res?.items||[]).slice(0,3)){if(!item.$ref)return item;try{const url=new URL(item.$ref);if(url.hostname!=="sports.core.api.espn.com"||!["http:","https:"].includes(url.protocol)||url.username||url.password)continue;url.protocol="https:";const value=await get(url.href);if(value&&typeof value==="object")return value}catch(e){}}
-return null}
-function oddsValues(o){if(!o)return null;
-const away=o.awayTeamOdds||{},home=o.homeTeamOdds||{};
-const money=(team)=>decimalValue(team.moneyLine??team.moneyline??team.money_line,team.moneyLineDecimal??team.decimalMoneyLine??team.moneylineDecimal);
-const spreadOdds=(team)=>decimalValue(team.spreadOdds??team.spreadPrice,team.spreadOddsDecimal??team.decimalSpreadOdds);
-const overOdds=o.overOdds??o.overTeamOdds?.odds??o.over?.odds??o.overPrice;
-const underOdds=o.underOdds??o.underTeamOdds?.odds??o.under?.odds??o.underPrice;
-return {provider:o.provider?.name||o.provider?.displayName||o.provider||"未標示業者",details:o.details||null,
-awayML:money(away),homeML:money(home),
-awaySpread:away.spread??o.awaySpread??null,homeSpread:home.spread??o.homeSpread??o.spread??null,
-awaySpreadOdds:spreadOdds(away),homeSpreadOdds:spreadOdds(home),
-total:o.overUnder??o.total??null,overOdds:decimalValue(overOdds,o.overOddsDecimal??o.overTeamOdds?.decimalOdds),underOdds:decimalValue(underOdds,o.underOddsDecimal??o.underTeamOdds?.decimalOdds)}}
+// Parse both legacy prices and current ESPN market objects. Never infer a missing price.
+function priceValue(value,decimal){
+ const dec=Number(decimal);
+ if(decimal!==null&&decimal!==undefined&&decimal!==""&&Number.isFinite(dec)&&dec>1)return dec.toFixed(2);
+ if(value===null||value===undefined||value==="")return null;
+ if(typeof value==="object"){
+   const d=value.decimal??value.decimalOdds??value.value;
+   const a=value.american??value.alternateDisplayValue??value.odds;
+   return priceValue(a,d);
+ }
+ if(typeof value!=="string"&&typeof value!=="number")return null;
+ const v=Number(value);
+ if(!Number.isFinite(v))return null;
+ // A signed American line must be at least 100 in magnitude. Unsigned
+ // values greater than 1 and below 100 may be provider decimal prices.
+ if(Math.abs(v)>=100)return ml(v);
+ if(v>1&&v<100&&!String(value).trim().startsWith("+"))return v.toFixed(2);
+ return null;
+}
+const firstPrice=(...values)=>values.map(v=>priceValue(v)).find(v=>v!==null)??null;
+const priceCount=o=>o?[o.awayML,o.homeML,o.drawML,o.awaySpreadOdds,o.homeSpreadOdds,o.overOdds,o.underOdds].filter(v=>v!==null&&v!==undefined&&v!=="").length:0;
+const lineValue=v=>{if(v===null||v===undefined||v==="")return null;if(typeof v==="object")return lineValue(v.line??v.handicap??v.american??v.alternateDisplayValue??v.displayValue);const n=Number(v);return Number.isFinite(n)?n:null};
+const firstLine=(...vs)=>vs.map(lineValue).find(v=>v!==null)??null;
+function oddsValues(o){if(!o||typeof o!=="object")return null;
+ const away=o.awayTeamOdds||{},home=o.homeTeamOdds||{},draw=o.drawTeamOdds||{};
+ const money=(team,side)=>firstPrice(
+  team.current?.moneyLine,team.current?.moneyline,
+  priceValue(team.moneyLine??team.moneyline??team.money_line,team.moneyLineDecimal??team.decimalMoneyLine??team.moneylineDecimal),
+  o.moneyline?.[side]?.current?.odds,o.moneyline?.[side]?.current,
+  o.moneyLine?.[side]?.current?.odds,o.moneyLine?.[side]?.current,
+  o.moneyline?.[side]?.close?.odds,o.moneyline?.[side]?.close,
+  o.moneyLine?.[side]?.close?.odds,o.moneyLine?.[side]?.close,
+  team.close?.moneyLine,team.close?.moneyline);
+ const spreadPrice=(team,side)=>firstPrice(
+  team.current?.spreadPrice,priceValue(team.spreadOdds??team.spreadPrice,team.spreadOddsDecimal??team.decimalSpreadOdds),
+  o.pointSpread?.[side]?.current?.odds,o.pointSpread?.[side]?.close?.odds,
+  o.spread?.[side]?.current?.odds,o.spread?.[side]?.close?.odds,team.close?.spreadPrice);
+ const totals=o.total||{},totalCurrent=o.current||{},totalClose=o.close||{};
+ const totalPrice=side=>firstPrice(
+  totalCurrent[side],priceValue(o[side+"Odds"]??o[side+"TeamOdds"]?.odds??o[side]?.odds??o[side+"Price"],o[side+"OddsDecimal"]??o[side+"TeamOdds"]?.decimalOdds),
+  totals[side]?.current?.odds,totals[side]?.current,
+  totals[side]?.close?.odds,totals[side]?.close,totalClose[side]);
+ const h=firstLine(home.current?.pointSpread,home.spread,o.homeSpread,o.spread,o.pointSpread?.home?.current?.line,o.pointSpread?.home?.close?.line,home.close?.pointSpread);
+ const a=firstLine(away.current?.pointSpread,away.spread,o.awaySpread,o.pointSpread?.away?.current?.line,o.pointSpread?.away?.close?.line,away.close?.pointSpread);
+ return {provider:o.provider?.name||o.provider?.displayName||(typeof o.provider==="string"?o.provider:"ESPN 公開來源"),details:o.details||null,
+ awayML:money(away,"away"),homeML:money(home,"home"),drawML:firstPrice(money(draw,"draw"),priceValue(o.drawOdds??o.drawMoneyLine??o.drawMoneyline,o.drawOddsDecimal??o.drawMoneyLineDecimal)),
+ awaySpread:a,homeSpread:h,
+ awaySpreadOdds:spreadPrice(away,"away"),homeSpreadOdds:spreadPrice(home,"home"),
+ total:firstLine(totalCurrent.total,o.overUnder,o.total,totals.over?.current?.line,totals.under?.current?.line,totals.over?.close?.line,totals.under?.close?.line,totalClose.total),
+ overOdds:totalPrice("over"),underOdds:totalPrice("under")};
+}
+function bestOdds(...groups){const rows=groups.flatMap(g=>Array.isArray(g)?g:(g&&typeof g==="object"?[g]:[]));return rows.filter(o=>priceCount(oddsValues(o))>0).sort((a,b)=>priceCount(oddsValues(b))-priceCount(oddsValues(a)))[0]||null}
+function oddsFromEvent(e){return bestOdds(comp(e).odds,e.odds)}
+async function getOdds(e,lg){
+ const inline=oddsFromEvent(e);if(inline)return inline;
+ const eventId=String(e.id);
+ const date=new Date(e.date);
+ const day=Number.isFinite(date.getTime())?date.toISOString().slice(0,10).replace(/-/g,""):"";
+ const query=lg==="basketball/mens-college-basketball"?"&groups=50":"";
+ const summaryCall=get(base+lg+"/summary?event="+encodeURIComponent(eventId)).then(d=>bestOdds(d?.header?.competitions?.[0]?.odds,d?.pickcenter,d?.odds));
+ const dailyCall=day?get(base+lg+"/scoreboard?dates="+day+"&limit=300"+query).then(d=>{const match=(d?.events||[]).find(x=>String(x.id)===eventId);return match?oddsFromEvent(match):null}):Promise.resolve(null);
+ const cid=comp(e).id||eventId,parts=lg.split("/");
+ const core="https://sports.core.api.espn.com/v2/sports/"+parts[0]+"/leagues/"+parts[1]+"/events/"+encodeURIComponent(eventId)+"/competitions/"+encodeURIComponent(cid)+"/odds?limit=10";
+ const coreCall=get(core).then(async res=>{
+   const items=Array.isArray(res?.items)?res.items:[];
+   const candidates=await Promise.allSettled(items.slice(0,5).map(async item=>{
+    if(!item?.$ref)return item;
+    const url=new URL(item.$ref);
+    if(url.hostname!=="sports.core.api.espn.com"||!["http:","https:"].includes(url.protocol)||url.username||url.password)return null;
+    url.protocol="https:";return get(url.href);
+   }));
+   return bestOdds(candidates.filter(x=>x.status==="fulfilled").map(x=>x.value));
+ });
+ const requirePrice=p=>p.then(o=>{if(!o||!priceCount(oddsValues(o)))throw Error("NO_VERIFIED_PRICES");return o});
+ return Promise.any([summaryCall,dailyCall,coreCall].map(requirePrice)).catch(()=>null);
+}
 const canonical=n=>{const name=String(n||"").trim();return String(window.hzTeamZh?.(name)||name).normalize("NFKC").toLowerCase().replace(/[\s\p{P}]/gu,"")};
 const aliases=t=>[t?.displayName,t?.name,t?.shortDisplayName,t?.abbreviation,t?.location&&t?.name?t.location+" "+t.name:null].filter(Boolean).flatMap(n=>[canonical(n),String(n).normalize("NFKC").toLowerCase().replace(/[\s\p{P}]/gu,"")]);
 const matched=(source,target)=>{const a=canonical(source);return !!a&&aliases(target).includes(a)};
@@ -115,12 +170,12 @@ if(!o){const snapshot=snapshotOdds(e,lg);const live=getOdds(e,lg).then(oddsValue
 const usable=v=>v&&[v.awayML,v.homeML,v.drawML,v.awaySpreadOdds,v.homeSpreadOdds,v.overOdds,v.underOdds].some(hasPrice);
 o=await Promise.any([snapshot.then(v=>{if(!usable(v))throw Error("no snapshot prices");return v}),live.then(v=>{if(!usable(v))throw Error("no live prices");return v})]).catch(()=>null)}
 if(id!==oddsRequest)return;
-if(!o||![o.awayML,o.homeML,o.awaySpreadOdds,o.homeSpreadOdds,o.overOdds,o.underOdds].some(hasPrice)){
-$detail.innerHTML='<div class="hz-odds-no-data">此場目前未取得可核實的賠率價格，請改查其他場次。</div>';status("已載入賽事，但來源目前沒有可核實的價格。");return}
+if(!priceCount(o)){
+$detail.innerHTML='<div class="hz-odds-no-data">此場尚未取得來源發布的有效賠率。可切換「第三方公開盤口（全部賽事）」查看已取得的其他場次。</div>';status("已載入賽事，但來源目前沒有可核實的價格。");return}
 const provider=typeof o.provider==="string"?o.provider:"未標示業者";
 const displayPrice=v=>hasPrice(v)?safe(v):"—",spread=v=>hasPrice(v)?safe(v):"—";
 const fields=[];
-if(hasPrice(o.awayML)||hasPrice(o.homeML)){
+if(hasPrice(o.awayML)||hasPrice(o.homeML)||hasPrice(o.drawML)){
 fields.push(panelRow("獨贏（十進位賠率）",'<span>'+safe(cn(a))+'</span><strong>'+displayPrice(o.awayML)+'</strong>','<span>'+safe(cn(h))+'</span><strong>'+displayPrice(o.homeML)+'</strong>'));
 if(hasPrice(o.drawML))fields.push('<div class="hz-odds-market"><b>和局</b><div><strong>'+displayPrice(o.drawML)+'</strong></div></div>')}
 if(hasPrice(o.awaySpreadOdds)||hasPrice(o.homeSpreadOdds)){
