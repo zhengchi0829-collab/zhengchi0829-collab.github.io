@@ -243,17 +243,41 @@ function auditRecords(records,matches,league,from,to){
 }
 let perfReq=0,perfReady=false;
 async function historyScores(league,from,to,onProgress){
- const chunks=[],day=86400000;
+ const day=86400000,limit=500,groups=league==="basketball/mens-college-basketball"?"&groups=50":"";
  const begin=new Date(from);begin.setUTCHours(0,0,0,0);
- for(let t=begin.getTime();t<=to;t+=7*day)chunks.push(dateKey(t)+"-"+dateKey(Math.min(t+6*day,to)));
- const all=[],failed=[],capped=[];
- for(let i=0;i<chunks.length;i+=3){
-   const part=chunks.slice(i,i+3);
-   const results=await Promise.allSettled(part.map(d=>source(league+"/scoreboard?dates="+d+"&limit=500"+(league==="basketball/mens-college-basketball"?"&groups=50":""))));
-   results.forEach((r,j)=>{if(r.status!=="fulfilled"||!Array.isArray(r.value?.events))failed.push(part[j]);else{all.push(...r.value.events);if(r.value.events.length>=500)capped.push(part[j])}});
-   onProgress(Math.min(i+3,chunks.length),chunks.length);
+ const months=new Map();
+ for(let t=begin.getTime();t<=to;t+=day){
+   const d=dateKey(t),m=d.slice(0,6);
+   if(!months.has(m))months.set(m,[]);
+   months.get(m).push(d);
  }
- return {matches:dedupFinals(all,from,to),failed,capped,chunks:chunks.length};
+ const all=[],failed=[],capped=[],daily=[];
+ let completed=0;
+ const total=[...months.values()].reduce((n,ds)=>n+ds.length,0);
+ async function read(d){
+   const response=await source(league+"/scoreboard?dates="+d+"&limit="+limit+groups);
+   if(!Array.isArray(response?.events))throw Error("INVALID_HISTORY_RESPONSE");
+   return response.events;
+ }
+ // ESPN stopped accepting hyphenated date ranges. Try calendar months,
+ // then single days for unsupported or truncated monthly responses.
+ for(const [month,dates] of months){
+   try{
+     const events=await read(month);
+     if(events.length>=limit||events.length===0){daily.push(...dates)}
+     else{all.push(...events);completed+=dates.length;onProgress(completed,total)}
+   }catch(e){daily.push(...dates)}
+ }
+ for(let i=0;i<daily.length;i+=4){
+   const part=daily.slice(i,i+4);
+   const results=await Promise.allSettled(part.map(read));
+   results.forEach((r,j)=>{
+     if(r.status!=="fulfilled")failed.push(part[j]);
+     else{all.push(...r.value);if(r.value.length>=limit)capped.push(part[j])}
+   });
+   completed+=part.length;onProgress(completed,total);
+ }
+ return {matches:dedupFinals(all,from,to),failed,capped,chunks:total};
 }
 const outcome=(v,m)=>v==="draw"?"和局":v==="home"?(m?.home||"主隊"):v==="away"?(m?.away||"客隊"):"—";
 const ratio=(n,d)=>d?(100*n/d).toFixed(1)+"%":"—";
@@ -286,13 +310,13 @@ async function loadPerformance(){
  // Show genuine empty state immediately while history is being fetched.
  if(!archive||!archive.length)renderAudit([],!!archive);
  try{
- const history=await historyScores(lg,from,now,(n,total)=>{if(id===perfReq)$("hz-perf-status").textContent="正在讀取歷史賽果 "+n+"/"+total+" 個日期區間…"});
+ const history=await historyScores(lg,from,now,(n,total)=>{if(id===perfReq)$("hz-perf-status").textContent="正在讀取歷史賽果 "+n+"/"+total+" 天…"});
  if(id!==perfReq)return;
- const coverage="成功 "+(history.chunks-history.failed.length)+"/"+history.chunks+" 個日期區間"+(history.failed.length?"，部分資料未取得":"")+(history.capped.length?"，部分區間達回傳上限":"");
+ const coverage="成功 "+(history.chunks-history.failed.length)+"/"+history.chunks+" 天"+(history.failed.length?"，部分資料未取得":"")+(history.capped.length?"，部分區間達回傳上限":"");
  renderAudit(auditRecords(archive||[],history.matches,lg,from,now),!!archive);
  if(history.failed.length===history.chunks){
  $("hz-backtest-results").innerHTML=info("歷史賽果來源暫時無法存取，未計算回測結果。");
- $("hz-perf-status").textContent="歷史賽果來源連線失敗。";
+ $("hz-perf-status").textContent="歷史賽果來源連線失敗（已嘗試按月及逐日查詢）。";
  }else{
  const rows=backtest(history.matches,from+(now-from)/2,lg.startsWith("soccer/"));
  renderBacktest(rows,history.matches.length,coverage);
