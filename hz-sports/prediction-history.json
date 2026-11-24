@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "description": "Only original model predictions archived before kickoff. Empty until a verified model publishes records. Do not backfill predictions from final scores.",
+  "record_fields": [
+    "league",
+    "eventId",
+    "homeId",
+    "awayId",
+    "kickoff",
+    "publishedAt",
+    "pick",
+    "modelVersion"
+  ],
+  "records": []
+}
