@@ -40,7 +40,7 @@ def permitted(raw):
         pieces = rest.split("/")
         if len(pieces) < 3 or "/".join(pieces[:2]) not in ALLOWED_LEAGUES:
             return False
-        return len(pieces) == 3 and pieces[2] in {"scoreboard", "summary"}
+        return len(pieces) == 3 and pieces[2] in {"scoreboard", "summary", "injuries", "teams"}
     if url.hostname == "sports.core.api.espn.com":
         prefix = "/v2/sports/"
         if not url.path.startswith(prefix):
