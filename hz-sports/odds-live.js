@@ -22,12 +22,18 @@ const snapshotRaw="https://raw.githubusercontent.com/zhengchi0829-collab/line-sp
 async function fetchJSON(url,ms=15000){const c=new AbortController(),timer=setTimeout(()=>c.abort(),ms);try{const r=await fetch(url,{signal:c.signal,cache:"no-store",credentials:"omit"});if(!r.ok)throw Error("HTTP "+r.status);return await r.json()}finally{clearTimeout(timer)}}
 async function get(url){try{return await fetchJSON(oddsBackend+"?url="+encodeURIComponent(url),15000)}catch(err){return fetchJSON(url,9000)}}
 let games=[],request=0,oddsRequest=0;
+const refreshLabel=$refresh.textContent;
+function refreshBusy(busy){
+ $refresh.disabled=busy;
+ $refresh.textContent=busy?"更新中…":refreshLabel;
+ $refresh.setAttribute("aria-busy",String(busy));
+}
 function status(s){$status.textContent=s}
 function fillLeagues(){const options=leagues.filter(x=>x[0]===$sport.value);$league.innerHTML=options.map(x=>'<option value="'+safe(x[2])+'">'+safe(x[1])+'</option>').join("")+'<option value="snapshot">第三方公開盤口（全部賽事）</option>';loadMatches()}
 function comp(e){return e.competitions?.[0]||{}}
 function label(e){const teams=comp(e).competitors||[];const away=teams.find(x=>x.homeAway==="away")?.team||teams[0]?.team,home=teams.find(x=>x.homeAway==="home")?.team||teams[1]?.team;return cn(away)+" VS "+cn(home)}
 function monthRange(days){const now=new Date(),dates=new Set();for(let i=0;i<=days;i++){const t=new Date(now.getTime()+i*86400000);dates.add(t.getUTCFullYear()+String(t.getUTCMonth()+1).padStart(2,"0"))}return [...dates]}
-async function loadMatches(){const id=++request;oddsRequest++;games=[];$match.disabled=true;$refresh.disabled=true;$match.innerHTML='<option value="">讀取賽事中…</option>';$detail.innerHTML="";status("正在查詢聯賽近期賽程…");
+async function loadMatches(){const id=++request;oddsRequest++;games=[];$match.disabled=true;refreshBusy(true);$match.innerHTML='<option value="">讀取賽事中…</option>';$detail.innerHTML="";status("正在查詢聯賽近期賽程…");
 const lg=$league.value;
 if(lg==="snapshot"){await loadSnapshotMatches(id,$sport.value);return}
 try{const dates=monthRange(14),calls=dates.map(m=>get(base+lg+"/scoreboard?dates="+m+"&limit=300"+(lg==="basketball/mens-college-basketball"?"&groups=50":"")));
@@ -43,7 +49,7 @@ else{status("此聯賽未來 14 天沒有取得可查詢賽事；部分聯賽尚
 const data=await getSnapshot().catch(()=>null);if(id!==request)return;
 games=data?rowsFor(data,[labelMap[lg]]).filter(r=>Date.parse(r.start)>Date.now()).map((r,i)=>snapshotEvent(r,data,i,lg)):[];
 if(games.length){renderMatchOptions();status("賽程接口無法存取，已讀取此聯賽來源快取。");loadOdds();return}
-$match.innerHTML='<option value="">來源暫不可用</option>';$refresh.disabled=false;status("賽程來源暫時無法存取，請稍後重試。");$detail.innerHTML='<div class="hz-odds-no-data">無法驗證盤口，沒有使用假資料。</div>'}}
+$match.innerHTML='<option value="">來源暫不可用</option>';refreshBusy(false);status("賽程來源暫時無法存取，請稍後重試。");$detail.innerHTML='<div class="hz-odds-no-data">無法驗證盤口，沒有使用假資料。</div>'}}
 // Parse both legacy prices and current ESPN market objects. Never infer a missing price.
 function priceValue(value,decimal){
  const dec=Number(decimal);
@@ -97,8 +103,8 @@ function oddsValues(o){if(!o||typeof o!=="object")return null;
 }
 function bestOdds(...groups){const rows=groups.flatMap(g=>Array.isArray(g)?g:(g&&typeof g==="object"?[g]:[]));return rows.filter(o=>priceCount(oddsValues(o))>0).sort((a,b)=>priceCount(oddsValues(b))-priceCount(oddsValues(a)))[0]||null}
 function oddsFromEvent(e){return bestOdds(comp(e).odds,e.odds)}
-async function getOdds(e,lg){
- const inline=oddsFromEvent(e);const parsed=oddsValues(inline);
+async function getOdds(e,lg,force=false){
+ const inline=force?null:oddsFromEvent(e);const parsed=oddsValues(inline);
  const complete=o=>!!o&&!!o.homeML&&!!o.awayML&&o.total!==null&&o.total!==undefined&&!!o.overOdds&&!!o.underOdds&&!!o.homeSpreadOdds&&!!o.awaySpreadOdds;
  if(complete(parsed))return inline;
  const eventId=String(e.id);
@@ -147,7 +153,7 @@ async function getSnapshot(force=false){
 // All displayed records are read at runtime from a source. No embedded odds.
 function renderMatchOptions(){
  $match.innerHTML=games.length?games.map((e,i)=>'<option value="'+i+'">'+safe(time(e.date)+"｜"+label(e)+(e.sourceRow?"｜有來源資料":""))+'</option>').join(""):'<option value="">近期無可查詢賽事</option>';
- $match.disabled=!games.length;$refresh.disabled=false;
+ $match.disabled=!games.length;refreshBusy(false);
  const available=games.findIndex(e=>e.sourceRow||oddsFromEvent(e));
  if(available>=0)$match.value=String(available);
 }
@@ -175,14 +181,16 @@ async function loadSnapshotMatches(id,sport){
  renderMatchOptions();
  if(games.length){status("已從來源讀取 "+games.length+" 場未開賽盤口。");loadOdds()}
  else{status("來源沒有此球類未開賽的有效價格。");$detail.innerHTML='<div class="hz-odds-no-data">本次來源未提供盤口，不代表實際沒有比賽。</div>'}
- }catch(err){if(id!==request)return;$match.innerHTML='<option value="">賠率來源無法讀取</option>';$refresh.disabled=false;status("第三方來源連線失敗或資料不是今日更新。");$detail.innerHTML='<div class="hz-odds-no-data">無法取得來源資料。</div>'}
+ }catch(err){if(id!==request)return;$match.innerHTML='<option value="">賠率來源無法讀取</option>';refreshBusy(false);status("第三方來源連線失敗或資料不是今日更新。");$detail.innerHTML='<div class="hz-odds-no-data">無法取得來源資料。</div>'}
 }
-async function snapshotOdds(event,league){
- if(event.sourceRow)return rowValues(event.sourceRow,event.capturedAt);
- const data=await getSnapshot().catch(()=>null);if(!data)return null;
+async function snapshotOdds(event,league,force=false){
+ if(event.sourceRow&&!force)return rowValues(event.sourceRow,event.capturedAt);
+ const data=await getSnapshot(force).catch(()=>null);if(!data)return null;
  const {away:a,home:h}=matchTeams(event);
  if(!a||!h)return null;
- const rows=rowsFor(data,[labelMap[league],sportMap[league]].filter(Boolean)),stamp=Date.parse(event.date);
+ const sourceLeague=event.sourceRow?.league||league;
+ const keys=sourceLeague==="snapshot"?[$sport.value,...leagues.filter(x=>x[0]===$sport.value).map(x=>x[1])]:[labelMap[sourceLeague],sportMap[sourceLeague]];
+ const rows=rowsFor(data,keys.filter(Boolean)),stamp=Date.parse(event.date);
  const candidates=rows.filter(x=>Math.abs(Date.parse(x.start)-stamp)<=45*60000&&matched(x.home,h)&&matched(x.away,a));
  return candidates.length===1?rowValues(sourceRow(candidates[0],data,league),data.captured_at):null;
 }
@@ -225,28 +233,30 @@ async function liveEventFor(e,lg){
  });
  return found.length===1?{event:found[0],league}:null;
 }
-async function loadOdds(){
+async function loadOdds(force=false){
+ force=force===true;
  const id=++oddsRequest,lg=$league.value;
  const selected=$match.value;
  const e=selected!==""?games[Number(selected)]:null;
- if(!e){$detail.innerHTML="";return}
+ if(!e){$detail.innerHTML="";refreshBusy(false);return}
  const fixture='<div class="hz-odds-provider"><strong>'+safe(time(e.date)+"｜"+label(e))+'</strong></div>';
  const disclaimer='<p class="subtle">各場依日期與主客隊核對來源；快取與來源報價分開呈現，不推算缺少的價格。</p>';
  const stillSelected=()=>id===oddsRequest&&$league.value===lg&&$match.value===selected;
- $detail.innerHTML=fixture+'<div class="hz-odds-no-data">查詢該場來源盤口中…</div>';
- status("正在查詢："+label(e));
+ refreshBusy(true);
+ if(!force||!$detail.innerHTML)$detail.innerHTML=fixture+'<div class="hz-odds-no-data">查詢該場來源盤口中…</div>';
+ status((force?"正在更新本場賠率：":"正在查詢：")+label(e));
  try{
- let fallback=e.sourceRow?rowValues(e.sourceRow,e.capturedAt):null;
+ let fallback=!force&&e.sourceRow?rowValues(e.sourceRow,e.capturedAt):null;
  const drawFallback=()=>{
-   if(!stillSelected()||!priceCount(fallback))return;
+   if(force||!stillSelected()||!priceCount(fallback))return;
    $detail.innerHTML=fixture+marketHTML(fallback,e,true)+disclaimer;
    status("已顯示公開快照，正在查詢本場獨立盤口。");
  };
  if(fallback)drawFallback();
  // Always check the original event, even when a static fallback exists.
  // Never combine different bookmaker prices and lines in one market.
- const lookup=liveEventFor(e,lg).then(x=>x?getOdds(x.event,x.league):null).then(oddsValues).catch(()=>null);
- const cache=fallback?Promise.resolve(null):snapshotOdds(e,lg).catch(()=>null);
+ const lookup=liveEventFor(e,lg).then(x=>x?getOdds(x.event,x.league,force):null).then(oddsValues).catch(()=>null);
+ const cache=fallback?Promise.resolve(null):snapshotOdds(e,lg,force).catch(()=>null);
  const cacheDraw=cache.then(v=>{if(!fallback&&priceCount(v)){fallback=v;drawFallback()}return v});
  const [live]=await Promise.all([lookup,cacheDraw]);
  if(!stillSelected())return;
@@ -262,7 +272,14 @@ async function loadOdds(){
    status("賽事已載入，但未取得有效賠率。");
  }
  }catch(err){if(!stillSelected())return;$detail.innerHTML=fixture+'<div class="hz-odds-no-data">盤口來源目前無法連線，請稍後重新整理。</div>';status("賽事已載入，但盤口查詢失敗。")}
+ finally{if(stillSelected())refreshBusy(false)}
 }
-$sport.addEventListener("change",fillLeagues);$league.addEventListener("change",loadMatches);$match.addEventListener("change",loadOdds);$refresh.addEventListener("click",loadMatches);
+function refreshSelectedOdds(){
+ if($refresh.disabled)return;
+ const selected=$match.value;
+ if(selected!==""&&games[Number(selected)])return loadOdds(true);
+ return loadMatches();
+}
+$sport.addEventListener("change",fillLeagues);$league.addEventListener("change",loadMatches);$match.addEventListener("change",()=>loadOdds());$refresh.addEventListener("click",refreshSelectedOdds);
 fillLeagues();
 })();
