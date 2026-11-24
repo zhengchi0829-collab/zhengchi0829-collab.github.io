@@ -64,7 +64,7 @@ function priceValue(value,decimal){
 }
 const firstPrice=(...values)=>values.map(v=>priceValue(v)).find(v=>v!==null)??null;
 const priceCount=o=>o?[o.awayML,o.homeML,o.drawML,o.awaySpreadOdds,o.homeSpreadOdds,o.overOdds,o.underOdds].filter(v=>v!==null&&v!==undefined&&v!=="").length:0;
-const lineValue=v=>{if(v===null||v===undefined||v==="")return null;if(typeof v==="object")return lineValue(v.line??v.handicap??v.american??v.alternateDisplayValue??v.displayValue);const n=Number(v);return Number.isFinite(n)?n:null};
+const lineValue=v=>{if(v===null||v===undefined||v==="")return null;if(typeof v==="object")return lineValue(v.line??v.handicap??v.displayValue);const n=Number(v);return Number.isFinite(n)?n:null};
 const firstLine=(...vs)=>vs.map(lineValue).find(v=>v!==null)??null;
 function oddsValues(o){if(!o||typeof o!=="object")return null;
  const away=o.awayTeamOdds||{},home=o.homeTeamOdds||{},draw=o.drawTeamOdds||{};
@@ -159,7 +159,7 @@ function renderMatchOptions(lg){
 }
 const validPrice=x=>x!==null&&x!==undefined&&x!==""&&Number.isFinite(Number(x))&&Number(x)>1?Number(x).toFixed(Number(x)<1.005?4:2):null;
 function rowValues(row,capturedAt){if(!row)return null;
- const vals={provider:row.provider||"第三方公開賠率快取（非娛樂平台官方）",capturedAt,captureLabel:row.captureLabel,sourceUrl:row.source,spreadSourceUrl:row.spread_source,awayML:validPrice(row.away_price),homeML:validPrice(row.home_price),drawML:validPrice(row.draw_price),
+ const vals={provider:row.provider||"第三方公開賠率快取（非娛樂平台官方）",capturedAt,captureLabel:row.captureLabel,sourceUrl:row.source,spreadSourceUrl:row.spread_source,fixedTotal:row.league?.startsWith("soccer/")&&typeof row.source==="string"&&row.source.startsWith("https://www.oddstorm.com/odds/league/")&&Number(row.total)===2.5,awayML:validPrice(row.away_price),homeML:validPrice(row.home_price),drawML:validPrice(row.draw_price),
  awaySpread:row.spread===null||row.spread===undefined?null:-Number(row.spread),homeSpread:row.spread,
  awaySpreadOdds:validPrice(row.spread_away_price),homeSpreadOdds:validPrice(row.spread_home_price),total:row.total,overOdds:validPrice(row.over_price),underOdds:validPrice(row.under_price)};
  return [vals.awayML,vals.homeML,vals.drawML,vals.awaySpreadOdds,vals.homeSpreadOdds,vals.overOdds,vals.underOdds].some(Boolean)?vals:null;
@@ -189,30 +189,82 @@ async function snapshotOdds(event,league){
  return candidates.length===1?rowValues(candidates[0],data.captured_at):null;
 }
 function panelRow(title,a,b){return '<div class="hz-odds-market"><b>'+safe(title)+'</b><div>'+a+'</div><div>'+b+'</div></div>'}
-async function loadOdds(){const e=games[Number($match.value)];if(!e)return;const id=++oddsRequest,lg=$league.value;
-$detail.innerHTML='<div class="hz-odds-no-data">查詢該場實際盤口中…</div>';
-const cs=comp(e).competitors||[],a=cs.find(x=>x.homeAway==="away")?.team||cs[0]?.team,h=cs.find(x=>x.homeAway==="home")?.team||cs[1]?.team;
-try{const hasPrice=v=>v!==null&&v!==undefined&&v!=="";
-let o=e.sourceRow?rowValues(e.sourceRow,e.capturedAt):null;
-if(!o){const known=publishedMatch(e,lg);if(known)o=rowValues(known)}
-if(!o){const snapshot=snapshotOdds(e,lg);const live=getOdds(e,lg).then(oddsValues).catch(()=>null);
-const usable=v=>v&&[v.awayML,v.homeML,v.drawML,v.awaySpreadOdds,v.homeSpreadOdds,v.overOdds,v.underOdds].some(hasPrice);
-o=await Promise.any([snapshot.then(v=>{if(!usable(v))throw Error("no snapshot prices");return v}),live.then(v=>{if(!usable(v))throw Error("no live prices");return v})]).catch(()=>null)}
-if(id!==oddsRequest)return;
-if(!priceCount(o)){
-$detail.innerHTML='<div class="hz-odds-no-data">此場尚未取得來源發布的有效賠率。可切換「第三方公開盤口（全部賽事）」查看已取得的其他場次。</div>';status("已載入賽事，但來源目前沒有可核實的價格。");return}
-const provider=typeof o.provider==="string"?o.provider:"未標示業者";
-const displayPrice=v=>hasPrice(v)?safe(v):"—",spread=v=>hasPrice(v)?safe(v):"—";
-const fields=[];
-if(hasPrice(o.awayML)||hasPrice(o.homeML)||hasPrice(o.drawML)){
-fields.push(panelRow("獨贏（十進位賠率）",'<span>'+safe(cn(a))+'</span><strong>'+displayPrice(o.awayML)+'</strong>','<span>'+safe(cn(h))+'</span><strong>'+displayPrice(o.homeML)+'</strong>'));
-if(hasPrice(o.drawML))fields.push('<div class="hz-odds-market"><b>和局</b><div><strong>'+displayPrice(o.drawML)+'</strong></div></div>')}
-if(hasPrice(o.awaySpreadOdds)||hasPrice(o.homeSpreadOdds)){
-fields.push(panelRow("讓分盤",'<span>客隊讓分 '+spread(o.awaySpread)+'</span><strong>'+displayPrice(o.awaySpreadOdds)+'</strong>','<span>主隊讓分 '+spread(o.homeSpread)+'</span><strong>'+displayPrice(o.homeSpreadOdds)+'</strong>'))}
-if(hasPrice(o.overOdds)||hasPrice(o.underOdds)){
-fields.push(panelRow("大小分",'<span>大 '+spread(o.total)+'</span><strong>'+displayPrice(o.overOdds)+'</strong>','<span>小 '+spread(o.total)+'</span><strong>'+displayPrice(o.underOdds)+'</strong>'))}
-$detail.innerHTML='<div class="hz-odds-provider">賠率來源：'+safe(provider)+(o.captureLabel?"｜快照："+safe(o.captureLabel):o.capturedAt?"｜更新："+safe(new Date(o.capturedAt).toLocaleString("zh-TW",{timeZone:"Asia/Taipei"})):"")+'｜來源可能延遲或變動</div>'+fields.join("")+'<p class="subtle">僅展示取得的價格；沒有價格的市場不顯示。本站未串接娛樂平台官方即時盤口。'+(o.sourceUrl&&o.sourceUrl.startsWith("https://")?' <a href="'+safe(o.sourceUrl)+'" target="_blank" rel="noopener noreferrer">資料來源</a>':'')+(o.spreadSourceUrl&&o.spreadSourceUrl.startsWith("https://")?' · <a href="'+safe(o.spreadSourceUrl)+'" target="_blank" rel="noopener noreferrer">讓分來源</a>':'')+'</p>';status(o.captureLabel?"已顯示公開來源賠率快照；並非即時更新。":"已顯示本場可取得的賠率價格。");
-}catch(err){if(id!==oddsRequest)return;$detail.innerHTML='<div class="hz-odds-no-data">盤口來源目前無法連線，請稍後重新整理。</div>';status("賽事已載入，但盤口查詢失敗。")}}
+const hasPrice=v=>v!==null&&v!==undefined&&v!=="";
+const hasLine=v=>hasPrice(v)&&Number.isFinite(Number(v));
+function matchTeams(e){const cs=comp(e).competitors||[];return {away:cs.find(x=>x.homeAway==="away")?.team||cs[0]?.team,home:cs.find(x=>x.homeAway==="home")?.team||cs[1]?.team}}
+function marketHTML(o,e,reference=false){
+ if(!priceCount(o))return "";
+ const {away:a,home:h}=matchTeams(e);
+ const isSoccer=(e.sourceRow?.league||$league.value).startsWith("soccer/");
+ const price=v=>hasPrice(v)?safe(v):"—";
+ const signed=v=>!hasLine(v)?"—":Number(v)>0?"+"+safe(v):safe(v);
+ const fields=[];
+ if(hasPrice(o.awayML)||hasPrice(o.homeML)||hasPrice(o.drawML)){
+ fields.push(panelRow("獨贏（十進位賠率）",'<span>'+safe(cn(a))+'</span><strong>'+price(o.awayML)+'</strong>','<span>'+safe(cn(h))+'</span><strong>'+price(o.homeML)+'</strong>'));
+ if(hasPrice(o.drawML))fields.push('<div class="hz-odds-market"><b>和局</b><div><strong>'+price(o.drawML)+'</strong></div></div>')}
+ if((hasPrice(o.awaySpreadOdds)&&hasLine(o.awaySpread))||(hasPrice(o.homeSpreadOdds)&&hasLine(o.homeSpread))){
+ fields.push(panelRow(isSoccer?"讓球盤":"讓分盤",'<span>客隊 '+signed(o.awaySpread)+'</span><strong>'+price(o.awaySpreadOdds)+'</strong>','<span>主隊 '+signed(o.homeSpread)+'</span><strong>'+price(o.homeSpreadOdds)+'</strong>'))}
+ if(hasLine(o.total)&&(hasPrice(o.overOdds)||hasPrice(o.underOdds))){
+ const title=o.fixedTotal?"大小球（固定 2.5 參考盤）":isSoccer?"大小球（來源盤口）":"大小分（來源盤口）";
+ fields.push(panelRow(title,'<span>大 '+safe(o.total)+'</span><strong>'+price(o.overOdds)+'</strong>','<span>小 '+safe(o.total)+'</span><strong>'+price(o.underOdds)+'</strong>'));
+ if(o.fixedTotal)fields.push('<p class="subtle">此來源僅比較 2.5 球市場，不代表本場主盤為 2.5。</p>')}
+ if(!fields.length)return "";
+ const provider=typeof o.provider==="string"?o.provider:"未標示業者";
+ return '<div class="hz-odds-provider">'+(reference?'參考盤口來源：':'賠率來源：')+safe(provider)+(o.captureLabel?'｜快照：'+safe(o.captureLabel):o.capturedAt?'｜更新：'+safe(new Date(o.capturedAt).toLocaleString("zh-TW",{timeZone:"Asia/Taipei"})):'')+'｜來源可能延遲或變動</div>'+fields.join("")+'<p class="subtle">'+(o.sourceUrl&&o.sourceUrl.startsWith("https://")?' <a href="'+safe(o.sourceUrl)+'" target="_blank" rel="noopener noreferrer">資料來源</a>':'')+(o.spreadSourceUrl&&o.spreadSourceUrl.startsWith("https://")?' · <a href="'+safe(o.spreadSourceUrl)+'" target="_blank" rel="noopener noreferrer">讓球來源</a>':'')+'</p>';
+}
+async function liveEventFor(e,lg){
+ if(!e.sourceRow)return lg!=="snapshot"?{event:e,league:lg}:null;
+ const league=e.sourceRow.league||(lg!=="snapshot"?lg:null);
+ if(!league||!leagues.some(x=>x[2]===league))return null;
+ const date=new Date(e.date);if(!Number.isFinite(date.getTime()))return null;
+ const day=date.toISOString().slice(0,10).replace(/-/g,"");
+ const query=league==="basketball/mens-college-basketball"?"&groups=50":"";
+ const scoreboard=await get(base+league+"/scoreboard?dates="+day+"&limit=300"+query).catch(()=>null);
+ const row=e.sourceRow,stamp=Date.parse(e.date);
+ const found=(scoreboard?.events||[]).filter(event=>{
+   const {home,away}=matchTeams(event);
+   return Math.abs(Date.parse(event.date)-stamp)<=45*60000&&matched(row.home,home)&&matched(row.away,away);
+ });
+ return found.length===1?{event:found[0],league}:null;
+}
+async function loadOdds(){
+ const id=++oddsRequest,lg=$league.value;
+ const selected=$match.value;
+ const e=selected!==""?games[Number(selected)]:null;
+ if(!e){$detail.innerHTML="";return}
+ const fixture='<div class="hz-odds-provider"><strong>'+safe(time(e.date)+"｜"+label(e))+'</strong></div>';
+ const disclaimer='<p class="subtle">來源盤口與公開比較快照分開呈現；沒有取得的價格或盤口不推算。</p>';
+ const stillSelected=()=>id===oddsRequest&&$league.value===lg&&$match.value===selected;
+ $detail.innerHTML=fixture+'<div class="hz-odds-no-data">查詢該場來源盤口中…</div>';
+ status("正在查詢："+label(e));
+ try{
+ let fallback=e.sourceRow?rowValues(e.sourceRow,e.capturedAt):rowValues(publishedMatch(e,lg));
+ const drawFallback=()=>{
+   if(!stillSelected()||!priceCount(fallback))return;
+   $detail.innerHTML=fixture+marketHTML(fallback,e,true)+disclaimer;
+   status("已顯示公開快照，正在查詢本場獨立盤口。");
+ };
+ if(fallback)drawFallback();
+ // Always check the original event, even when a static fallback exists.
+ // Never combine different bookmaker prices and lines in one market.
+ const lookup=liveEventFor(e,lg).then(x=>x?getOdds(x.event,x.league):null).then(oddsValues).catch(()=>null);
+ const cache=fallback?Promise.resolve(null):snapshotOdds(e,lg).catch(()=>null);
+ const cacheDraw=cache.then(v=>{if(!fallback&&priceCount(v)){fallback=v;drawFallback()}return v});
+ const [live]=await Promise.all([lookup,cacheDraw]);
+ if(!stillSelected())return;
+ const primary=marketHTML(live,e),ref=marketHTML(fallback,e,true);
+ if(primary){
+   $detail.innerHTML=fixture+primary+(ref?'<div style="margin-top:16px"><strong>公開參考快照（非即時）</strong>'+ref+'</div>':'')+disclaimer;
+   status("已取得本場來源盤口；不同來源分開顯示。");
+ }else if(ref){
+   $detail.innerHTML=fixture+ref+disclaimer;
+   status(fallback.fixedTotal?"目前只有固定 2.5 比較市場，尚未取得本場獨立主盤。":"目前顯示公開來源快照，尚未取得新的來源盤口。");
+ }else{
+   $detail.innerHTML=fixture+'<div class="hz-odds-no-data">本場尚未取得可核對的盤口或價格。</div>';
+   status("賽事已載入，但未取得有效賠率。");
+ }
+ }catch(err){if(!stillSelected())return;$detail.innerHTML=fixture+'<div class="hz-odds-no-data">盤口來源目前無法連線，請稍後重新整理。</div>';status("賽事已載入，但盤口查詢失敗。")}
+}
 $sport.addEventListener("change",fillLeagues);$league.addEventListener("change",loadMatches);$match.addEventListener("change",loadOdds);$refresh.addEventListener("click",loadMatches);
 fillLeagues();
 })();
