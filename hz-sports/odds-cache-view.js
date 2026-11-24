@@ -39,7 +39,7 @@ main.insertAdjacentHTML("beforeend",'<section class="page" id="injuries"><div cl
  '<section class="page" id="prediction-performance"><div class="title-row"><div><h1>AI 歷史預測績效</h1><p>封存賽前預測、核對終場賽果及獨立歷史基準回測</p></div><span class="tag">Hz SPORTS · 績效驗證</span></div><div class="surface padded"><div class="hz-r-controls">'+selector("hz-perf")+'<label>統計期間<select id="hz-perf-days"><option value="30">近 30 天</option><option value="60" selected>近 60 天</option><option value="90">近 90 天</option></select></label><button type="button" class="primary" id="hz-perf-refresh">↻ 查詢績效</button></div><p id="hz-perf-status" class="subtle" role="status" aria-live="polite">選擇聯賽及期間後讀取資料。</p></div><div class="surface padded"><h2>賽前封存 AI 預測實績</h2><p class="subtle">只計入已在開賽前封存、隊伍及賽事相符且能取得終場比分的預測；未核對不列入命中率。</p><div id="hz-perf-kpis" class="hz-r-metrics"></div><div id="hz-perf-results">'+info("尚未取得賽前封存紀錄。")+'</div></div><div class="surface padded"><h2>歷史戰力基準回測（非 AI 實績）</h2><p class="subtle">以真實歷史比分測試 Elo 戰力基準，僅使用當場開賽至少 24 小時前已開始的歷史賽事，前半期間作暖身，後半期間評估。這不是已封存的 AI 預測紀錄。</p><div id="hz-backtest-kpis" class="hz-r-metrics"></div><div id="hz-backtest-results">'+info("等待歷史賽果來源")+'</div></div></section>');
 const style=document.createElement("style");
 style.id="hz-research-tools-style";
-style.textContent="#injuries .hz-r-controls,#prediction-performance .hz-r-controls{display:flex;gap:12px;align-items:end;flex-wrap:wrap}.hz-r-controls label{flex:1 1 140px;min-width:120px;color:var(--muted);font-size:13px}.hz-r-controls input,.hz-r-controls select{display:block;width:100%;margin-top:7px;padding:11px 12px;border-radius:8px;background:#102731;border:1px solid #315766;color:var(--text);min-height:44px}.hz-r-controls .primary{min-height:44px}.hz-r-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:12px;margin:0 0 18px}.hz-r-metric{padding:16px;border:1px solid #315766;border-radius:10px;background:#10232e;display:grid;gap:6px}.hz-r-metric span,.hz-r-metric small{color:var(--muted);font-size:12px}.hz-r-metric strong{font-size:26px;line-height:1.2;color:#c6f66b;font-variant-numeric:tabular-nums}.hz-r-empty{padding:22px 16px;color:var(--muted);border:1px dashed #365765;border-radius:9px;text-align:center}.hz-r-table{width:100%;border-collapse:collapse;min-width:570px}.hz-r-table th,.hz-r-table td{text-align:left;padding:12px 10px;border-bottom:1px solid #274451;vertical-align:top;white-space:normal}.hz-r-table th{color:var(--muted);font-size:12px;white-space:nowrap}.hz-r-table td{font-size:14px}.hz-r-scroll{overflow-x:auto}.hz-r-status{display:inline-block;padding:4px 9px;border-radius:6px;border:1px solid #446475;white-space:nowrap;color:#c4d9e3}.hz-r-status.out{color:#ffc4c0;border-color:#885451;background:#492a2b}.hz-r-status.warn{color:#ffdfa4;border-color:#806942;background:#423720}.hz-r-status.ok{color:#c5efb0;border-color:#547b52;background:#28482f}.hz-r-source{color:var(--muted);font-size:12px;margin-top:14px;overflow-wrap:anywhere}.hz-r-source a{text-decoration:underline}.hz-r-note{display:block;color:var(--muted);font-size:12px;margin-top:5px}.hz-r-player{font-weight:700}.hz-r-team{color:var(--muted);font-size:12px;margin-top:4px}@media(max-width:600px){.hz-r-controls label{flex:1 1 calc(50% - 12px);min-width:100px}.hz-r-controls .primary{width:100%}.hz-r-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.hz-r-metric strong{font-size:22px}.mobile-nav a{min-width:0;flex:1;text-align:center}}";
+style.textContent="#injuries .hz-r-controls,#prediction-performance .hz-r-controls{display:flex;gap:12px;align-items:end;flex-wrap:wrap}.hz-r-controls label{flex:1 1 140px;min-width:120px;color:var(--muted);font-size:13px}.hz-r-controls input,.hz-r-controls select{display:block;width:100%;margin-top:7px;padding:11px 12px;border-radius:8px;background:#102731;border:1px solid #315766;color:var(--text);min-height:44px}.hz-r-controls .primary{min-height:44px}.hz-r-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:12px;margin:0 0 18px}.hz-r-metric{padding:16px;border:1px solid #315766;border-radius:10px;background:#10232e;display:grid;gap:6px}.hz-r-metric span,.hz-r-metric small{color:var(--muted);font-size:12px}.hz-r-metric strong{font-size:26px;line-height:1.2;color:#c6f66b;font-variant-numeric:tabular-nums}.hz-r-empty{padding:22px 16px;color:var(--muted);border:1px dashed #365765;border-radius:9px;text-align:center}.hz-r-table{width:100%;border-collapse:collapse;min-width:570px}.hz-r-table th,.hz-r-table td{text-align:left;padding:12px 10px;border-bottom:1px solid #274451;vertical-align:top;white-space:normal}.hz-r-table th{color:var(--muted);font-size:12px;white-space:nowrap}.hz-r-table td{font-size:14px}.hz-r-scroll{overflow-x:auto}.hz-r-status{display:inline-block;padding:4px 9px;border-radius:6px;border:1px solid #446475;white-space:nowrap;color:#c4d9e3}.hz-r-status.out{color:#ffc4c0;border-color:#885451;background:#492a2b}.hz-r-status.warn{color:#ffdfa4;border-color:#806942;background:#423720}.hz-r-status.ok{color:#c5efb0;border-color:#547b52;background:#28482f}.hz-r-source{color:var(--muted);font-size:12px;margin-top:14px;overflow-wrap:anywhere}.hz-r-source a{text-decoration:underline}.hz-r-note{display:block;color:var(--muted);font-size:12px;margin-top:5px}.hz-r-injury-cn{font-weight:600;line-height:1.6}.hz-r-injury-original{font-size:12px;color:var(--muted);margin-top:6px}.hz-r-injury-original summary{cursor:pointer}.hz-r-injury-original span{display:block;margin-top:5px;overflow-wrap:anywhere}.hz-r-player{font-weight:700}.hz-r-team{color:var(--muted);font-size:12px;margin-top:4px}@media(max-width:600px){.hz-r-controls label{flex:1 1 calc(50% - 12px);min-width:100px}.hz-r-controls .primary{width:100%}.hz-r-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.hz-r-metric strong{font-size:22px}.mobile-nav a{min-width:0;flex:1;text-align:center}}";
 document.head.appendChild(style);
 const textValue=(x)=>typeof x==="string"||typeof x==="number"?String(x):"";
 const nameOf=(t)=>window.hzTeamBilingual?.(t)||t?.displayName||t?.name||t?.shortDisplayName||"未標示球隊";
@@ -51,6 +51,53 @@ function injuryStatus(v){
  const key=raw.trim().toLowerCase();
  return {raw,label:statusMap[key]||raw,kind:/^(out|injured reserve|injured list|suspended|[0-9]+-day il)$/.test(key)?"out":/questionable|doubtful|day.to.day|probable|decision/.test(key)?"warn":/^(active|available)$/.test(key)?"ok":""};
 }
+// Local Traditional Chinese injury terminology; preserve source wording.
+const injuryTerms=[
+ ["not injury related|not injury-related|non injury related|non-injury related|personal reasons|personal matter|personal","非傷病因素"],
+ ["illness|sickness|sick","生病"],["flu|influenza","流感"],["virus|viral illness","病毒感染"],["infection","感染"],
+ ["load management|rest|resting","輪休"],["suspension|suspended","禁賽"],
+ ["concussion|concussion protocol","腦震盪"],["torn acl|acl tear|acl injury|acl","前十字韌帶傷勢"],["torn mcl|mcl tear|mcl","內側副韌帶傷勢"],["pcl","後十字韌帶傷勢"],["meniscus","半月板"],["achilles tendon|achilles","阿基里斯腱"],["rotator cuff","旋轉肌群"],["plantar fasciitis","足底筋膜炎"],["plantar fascia","足底筋膜"],
+ ["tommy john surgery","尺側副韌帶重建手術"],["ulnar collateral ligament|ucl","尺側副韌帶"],["hip flexor","髖屈肌"],
+ ["lower back|low back","下背部"],["upper back","上背部"],["lower leg","小腿"],["upper leg","大腿"],["lower body|lower-body","下半身"],["upper body|upper-body","上半身"],
+ ["hamstring|hamstrings","大腿後側肌群"],["quadriceps|quad|quads","股四頭肌"],["groin","鼠蹊部"],["adductor|adductors","內收肌"],["oblique|obliques","腹斜肌"],["abdominal|abdomen|abdominals","腹部"],["calf","小腿肚"],["shin","脛部"],
+ ["shoulder","肩部"],["elbow","肘部"],["forearm","前臂"],["wrist","手腕"],["finger|fingers","手指"],["thumb","拇指"],["hand","手部"],["arm","手臂"],["knee","膝蓋"],["ankle","腳踝"],["foot","足部"],["toe|toes","腳趾"],["heel","腳跟"],["hip","髖部"],["thigh","大腿"],["leg","腿部"],["back","背部"],["neck","頸部"],["head","頭部"],["face|facial","臉部"],["eye","眼部"],["jaw","下顎"],["nose","鼻部"],["rib|ribs","肋骨"],["chest","胸部"],["pelvis|pelvic","骨盆"],["glute|gluteal","臀部"],["core","核心肌群"],["turf toe","大腳趾關節扭傷"],
+ ["surgery|surgical procedure","手術"],["post surgery|post-surgery","術後"],["rehab|rehabilitation","復健"],
+ ["sprain|sprained","扭傷"],["strain|strained|pulled","拉傷"],["stress fracture","疲勞性骨折"],["fracture|fractured|broken","骨折"],["dislocation|dislocated","脫臼"],["contusion|bruise|bruised","挫傷"],["tear|torn","撕裂"],["rupture|ruptured","斷裂"],["tendinitis|tendonitis","肌腱炎"],["tendinopathy","肌腱病變"],["inflammation|inflamed","發炎"],["swelling|swollen","腫脹"],["soreness|sore","痠痛"],["pain|painful","疼痛"],["discomfort","不適"],["tightness|tight","緊繃"],["spasm|spasms","痙攣"],["cramp|cramps","抽筋"],["laceration|cut","割傷"],["stress reaction","應力性反應"],
+ ["injury|injured","傷勢"],["undisclosed|unspecified|unknown","來源未公開具體原因"],["left","左側"],["right","右側"],["bilateral|both","雙側"]
+].flatMap(([keys,zh])=>keys.split("|").map(key=>({key,zh}))).sort((a,b)=>b.key.length-a.key.length);
+function translateInjuryField(value){
+ const raw=textValue(value).trim();
+ if(!raw)return "";
+ const normalized=raw.toLowerCase().replace(/[_–—]/g,"-").replace(/\s+/g," ");
+ const exact=injuryTerms.find(x=>x.key===normalized);
+ if(exact)return exact.zh;
+ let working=normalized;
+ const translations=[];
+ for(const {key,zh} of injuryTerms){
+   const re=new RegExp("(^|[^a-z])"+key+"(?=$|[^a-z])","gi");
+   if(re.test(working)){translations.push(zh);working=working.replace(re,"$1 ")}
+ }
+ const unknown=working.replace(/\b(?:a|an|the|of|to|in|and|with|due|related|side|area|injuries)\b/g,"").replace(/[\s.,;:/()\-]+/g,"");
+ if(!translations.length||unknown)return "";
+ return [...new Set(translations)].join("・");
+}
+function chineseInjury(r){
+ const structured=[r.injurySide,r.injuryLocation,r.injuryType].filter(Boolean);
+ const translated=structured.map(translateInjuryField);
+ const known=[...new Set(translated.filter(Boolean))];
+ if(known.length)return known.join("・")+(translated.some(x=>!x)?"（部分細節見原文）":"");
+ const comment=textValue(r.comment).trim();
+ const direct=translateInjuryField(comment);
+ if(direct)return direct;
+ const bracket=[...comment.matchAll(/\(([^()]{1,65})\)/g)].map(m=>translateInjuryField(m[1])).filter(Boolean);
+ if(bracket.length===1)return "來源原文提及："+bracket[0];
+ return structured.length||comment?"傷病原因尚無對應中文（見原文）":"來源未標示傷病原因";
+}
+function injuryReasonHTML(r){
+ const raw=[r.injury,r.comment].filter((v,i,a)=>v&&a.indexOf(v)===i).join("｜");
+ return '<div class="hz-r-injury-cn">'+esc(chineseInjury(r))+'</div>'+(raw?'<details class="hz-r-injury-original"><summary>查看來源原文</summary><span>'+esc(raw)+'</span></details>':'');
+}
+
 function injuryRows(data){
  if(!data||typeof data!=="object")throw Error("INVALID_INJURY_RESPONSE");
  const top=Array.isArray(data)?data:Array.isArray(data.injuries)?data.injuries:null;
@@ -77,9 +124,10 @@ function injuryRows(data){
    const st=injuryStatus(entry.status?.name||entry.status?.description||entry.status||entry.type?.description||entry.type?.name);
    const id=[textValue(t?.id)||teamName,textValue(player.id)||playerName,textValue(entry.id)||st.raw,textValue(entry.date)].join("|");
    if(seen.has(id))return;seen.add(id);
-   const injury=[textValue(details.type),textValue(details.location),textValue(details.side)].filter(Boolean).join(" · ");
+   const injuryType=textValue(details.type),injuryLocation=textValue(details.location),injurySide=textValue(details.side);
+   const injury=[injuryType,injuryLocation,injurySide].filter(Boolean).join(" · ");
    const comment=textValue(entry.shortComment||entry.longComment||entry.description||injury);
-   rows.push({id,player:playerName,team:teamName,status:st,injury,comment,date:textValue(entry.date||entry.updated),returnDate:textValue(details.returnDate||entry.returnDate)});
+   rows.push({id,player:playerName,team:teamName,status:st,injury,injuryType,injuryLocation,injurySide,comment,date:textValue(entry.date||entry.updated),returnDate:textValue(details.returnDate||entry.returnDate)});
  };
  for(const entry of top)walk(entry,null,null,0);
  if(!recognized||top.length>0&&!rows.length&&top.some(x=>!Array.isArray(x?.injuries)||x.injuries.length>0))throw Error("UNKNOWN_INJURY_FORMAT");
@@ -104,11 +152,11 @@ function table(head,body){
 let injuryReq=0,injuryData=[],injuryReady=false,injuryReadAt=null,injurySource="";
 function showInjuries(){
  const q=$("hz-injury-search").value.trim().toLowerCase(),team=$("hz-injury-team").value;
- const rows=injuryData.filter(r=>(!team||r.team===team)&&(!q||[r.player,r.team,r.status.label,r.status.raw,r.injury,r.comment].join(" ").toLowerCase().includes(q)));
+ const rows=injuryData.filter(r=>(!team||r.team===team)&&(!q||[r.player,r.team,r.status.label,r.status.raw,r.injury,r.comment,chineseInjury(r)].join(" ").toLowerCase().includes(q)));
  $("hz-injury-kpis").innerHTML=metric("傷停／出賽紀錄",rows.length,"來源列出的人次")+metric("缺陣／傷病名單",rows.filter(r=>r.status.kind==="out").length,"含來源列出的禁賽")+metric("出賽待定",rows.filter(r=>r.status.kind==="warn").length,"含可能出賽、賽前決定");
  const sourceNote='<div class="hz-r-source">資料來源：<a target="_blank" rel="noopener noreferrer" href="'+esc(injurySource)+'">ESPN 公開傷停報告</a>｜讀取時間：'+esc(fmtTime(injuryReadAt))+'（不等於官方發布時間）</div>';
  if(!rows.length){$("hz-injury-results").innerHTML=info(injuryData.length?"沒有符合篩選條件的球員。":"來源本次未列出傷停紀錄，不代表全員健康。")+sourceNote;return}
- $("hz-injury-results").innerHTML=table(["球員／球隊","出賽狀態","傷病原因／來源原文","紀錄日期","預計回歸（來源）"],rows.map(r=>'<tr><td><div class="hz-r-player">'+esc(r.player)+'</div><div class="hz-r-team">'+esc(r.team)+'</div></td><td><span class="hz-r-status '+r.status.kind+'">'+esc(r.status.label)+'</span><small class="hz-r-note">'+esc(r.status.raw)+'</small></td><td>'+esc(r.injury||r.comment||"來源未標示")+(r.injury&&r.comment&&r.injury!==r.comment?'<small class="hz-r-note">'+esc(r.comment)+'</small>':'')+'</td><td>'+esc(fmtTime(r.date))+'</td><td>'+esc(fmtTime(r.returnDate))+'</td></tr>').join(""))+sourceNote;
+ $("hz-injury-results").innerHTML=table(["球員／球隊","出賽狀態","傷病原因（中文）","紀錄日期","預計回歸（來源）"],rows.map(r=>'<tr><td><div class="hz-r-player">'+esc(r.player)+'</div><div class="hz-r-team">'+esc(r.team)+'</div></td><td><span class="hz-r-status '+r.status.kind+'">'+esc(r.status.label)+'</span><small class="hz-r-note">'+esc(r.status.raw)+'</small></td><td>'+injuryReasonHTML(r)+'</td><td>'+esc(fmtTime(r.date))+'</td><td>'+esc(fmtTime(r.returnDate))+'</td></tr>').join(""))+sourceNote;
 }
 async function loadInjuries(){
  const id=++injuryReq,lg=$("hz-injury-league").value,btn=$("hz-injury-refresh");
