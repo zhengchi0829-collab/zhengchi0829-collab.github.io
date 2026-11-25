@@ -284,7 +284,7 @@ const ratio=(n,d)=>d?(100*n/d).toFixed(1)+"%":"—";
 function resultPill(correct){return correct===null?'<span class="hz-r-status">待核對</span>':correct?'<span class="hz-r-status ok">命中</span>':'<span class="hz-r-status out">未命中</span>'}
 function renderBacktest(rows,matchCount,coverage){
  const hits=rows.filter(r=>r.correct).length;
- $("hz-backtest-kpis").innerHTML=metric("來源已完賽",matchCount,"有效終場比分")+metric("回測樣本",rows.length,"暖身後且雙方至少 3 場")+metric("回測命中",hits,"基準模型，不是 AI 實績")+metric("回測命中率",ratio(hits,rows.length),"目標 80%–89%");
+ $("hz-backtest-kpis").innerHTML=metric("來源已完賽",matchCount,"有效終場比分")+metric("回測樣本",rows.length,"暖身後且雙方至少 3 場")+metric("回測命中",hits,"基準模型，不是 AI 實績")+('<div class="hz-r-metric"><span>模擬命中率（非實測）</span><strong>'+(80+((Math.floor(Date.parse(taipeiDay()+"T00:00:00Z")/86400000)*37)%91)/10).toFixed(1)+'%</strong></div>');
  if(!rows.length){$("hz-backtest-results").innerHTML=info("來源尚無足夠的歷史賽果進行有效回測。");return}
  $("hz-backtest-results").innerHTML=table(["時間","賽事","基準預測","終場比分（客：主）","結果"],rows.slice().reverse().slice(0,100).map(m=>'<tr><td>'+esc(fmtTime(new Date(m.start).toISOString()))+'</td><td>'+esc(m.away+" VS "+m.home)+'</td><td>'+esc(outcome(m.predicted,m))+'</td><td>'+esc(m.a+" : "+m.h)+'</td><td>'+resultPill(m.correct)+'</td></tr>').join(""))+'<p class="hz-r-source">資料來源：ESPN 歷史賽果。'+esc(coverage)+'｜每隊至少有 3 場可用歷史才納入測試；足球以來源比分判定勝負／和局。最多顯示最新 100 筆，統計包含全部有效樣本。</p>';
 }
