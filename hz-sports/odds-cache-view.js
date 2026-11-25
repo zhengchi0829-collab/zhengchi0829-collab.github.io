@@ -36,7 +36,7 @@ const selector=(prefix)=>'<label>球類<select id="'+prefix+'-sport">'+sportsOpt
 const metric=(title,value,sub)=>'<div class="hz-r-metric"><span>'+esc(title)+'</span><strong>'+esc(value)+'</strong><small>'+esc(sub)+'</small></div>';
 const info=(t)=>'<div class="hz-r-empty">'+esc(t)+'</div>';
 main.insertAdjacentHTML("beforeend",'<section class="page" id="injuries"><div class="title-row"><div><h1>球員傷停資訊</h1><p>按球類、聯賽及球隊查詢公開傷病報告與出賽狀態</p></div><span class="tag">Hz SPORTS · 傷停資訊</span></div><div class="surface padded"><div class="hz-r-controls">'+selector("hz-injury")+'<label>球隊<select id="hz-injury-team"><option value="">全部球隊</option></select></label><label>搜尋球員<input id="hz-injury-search" placeholder="輸入姓名、隊伍或狀態"></label><button type="button" class="primary" id="hz-injury-refresh">↻ 更新傷停</button></div><p id="hz-injury-status" class="subtle" role="status" aria-live="polite">選擇聯賽查詢傷停報告。</p></div><div id="hz-injury-kpis" class="hz-r-metrics"></div><div id="hz-injury-results" class="surface padded" aria-live="polite">'+info("尚未讀取資料")+'</div></section>'+
- '<section class="page" id="prediction-performance"><div class="title-row"><div><h1>AI 歷史預測績效</h1><p>依歷史賽果核對模型回測表現</p></div><span class="tag">Hz SPORTS · 績效驗證</span></div><div class="surface padded"><div class="hz-r-controls">'+selector("hz-perf")+'<label>統計期間<select id="hz-perf-days"><option value="30">近 30 天</option><option value="60" selected>近 60 天</option><option value="90">近 90 天</option></select></label><button type="button" class="primary" id="hz-perf-refresh">↻ 查詢績效</button></div><p id="hz-perf-status" class="subtle" role="status" aria-live="polite">選擇聯賽及期間後讀取資料。</p></div><div class="surface padded"><h2>歷史預測績效（模型回測）</h2><p class="subtle">以真實歷史比分測試 Elo 戰力基準，僅使用當場開賽至少 24 小時前已開始的歷史賽事，前半期間作暖身，後半期間評估。這不是已封存的 AI 預測紀錄。</p><div id="hz-backtest-kpis" class="hz-r-metrics"></div><div id="hz-backtest-results">'+info("等待歷史賽果來源")+'</div></div></section>');
+ '<section class="page" id="prediction-performance"><div class="title-row"><div><h1>AI 歷史預測績效</h1><p>依歷史賽果核對模型回測表現</p></div><span class="tag">Hz SPORTS · 績效驗證</span></div><div class="surface padded"><div class="hz-r-controls">'+selector("hz-perf")+'<label>統計期間<select id="hz-perf-days"><option value="30">近 30 天</option><option value="60" selected>近 60 天</option><option value="90">近 90 天</option></select></label><button type="button" class="primary" id="hz-perf-refresh">↻ 查詢績效</button></div><p id="hz-perf-status" class="subtle" role="status" aria-live="polite">選擇聯賽及期間後讀取資料。</p></div><div class="surface padded"><h2>歷史預測績效（模型回測）</h2><p class="subtle">以真實歷史比分測試 Elo 戰力基準，僅使用當場開賽至少 24 小時前已開始的歷史賽事，前半期間作暖身，後半期間評估。這不是已封存的 AI 預測紀錄。</p><div id="hz-backtest-kpis" class="hz-r-metrics"></div><div class="surface padded"><h2>每日模擬展示（非實測）</h2><p class="subtle">以下為合成示範數字，並非歷史預測結果，不代表實際命中率。</p><div id="hz-demo-kpis" class="hz-r-metrics"></div></div><div id="hz-backtest-results">'+info("等待歷史賽果來源")+'</div></div></section>');
 const style=document.createElement("style");
 style.id="hz-research-tools-style";
 style.textContent="#injuries .hz-r-controls,#prediction-performance .hz-r-controls{display:flex;gap:12px;align-items:end;flex-wrap:wrap}.hz-r-controls label{flex:1 1 140px;min-width:120px;color:var(--muted);font-size:13px}.hz-r-controls input,.hz-r-controls select{display:block;width:100%;margin-top:7px;padding:11px 12px;border-radius:8px;background:#102731;border:1px solid #315766;color:var(--text);min-height:44px}.hz-r-controls .primary{min-height:44px}.hz-r-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:12px;margin:0 0 18px}.hz-r-metric{padding:16px;border:1px solid #315766;border-radius:10px;background:#10232e;display:grid;gap:6px}.hz-r-metric span,.hz-r-metric small{color:var(--muted);font-size:12px}.hz-r-metric strong{font-size:26px;line-height:1.2;color:#c6f66b;font-variant-numeric:tabular-nums}.hz-r-empty{padding:22px 16px;color:var(--muted);border:1px dashed #365765;border-radius:9px;text-align:center}.hz-r-table{width:100%;border-collapse:collapse;min-width:570px}.hz-r-table th,.hz-r-table td{text-align:left;padding:12px 10px;border-bottom:1px solid #274451;vertical-align:top;white-space:normal}.hz-r-table th{color:var(--muted);font-size:12px;white-space:nowrap}.hz-r-table td{font-size:14px}.hz-r-scroll{overflow-x:auto}.hz-r-status{display:inline-block;padding:4px 9px;border-radius:6px;border:1px solid #446475;white-space:nowrap;color:#c4d9e3}.hz-r-status.out{color:#ffc4c0;border-color:#885451;background:#492a2b}.hz-r-status.warn{color:#ffdfa4;border-color:#806942;background:#423720}.hz-r-status.ok{color:#c5efb0;border-color:#547b52;background:#28482f}.hz-r-source{color:var(--muted);font-size:12px;margin-top:14px;overflow-wrap:anywhere}.hz-r-source a{text-decoration:underline}.hz-r-note{display:block;color:var(--muted);font-size:12px;margin-top:5px}.hz-r-injury-cn{font-weight:600;line-height:1.6}.hz-r-injury-original{font-size:12px;color:var(--muted);margin-top:6px}.hz-r-injury-original summary{cursor:pointer}.hz-r-injury-original span{display:block;margin-top:5px;overflow-wrap:anywhere}.hz-r-player{font-weight:700}.hz-r-team{color:var(--muted);font-size:12px;margin-top:4px}@media(max-width:600px){.hz-r-controls label{flex:1 1 calc(50% - 12px);min-width:100px}.hz-r-controls .primary{width:100%}.hz-r-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.hz-r-metric strong{font-size:22px}.mobile-nav a{min-width:0;flex:1;text-align:center}}";
@@ -282,9 +282,20 @@ async function historyScores(league,from,to,onProgress){
 const outcome=(v,m)=>v==="draw"?"和局":v==="home"?(m?.home||"主隊"):v==="away"?(m?.away||"客隊"):"—";
 const ratio=(n,d)=>d?(100*n/d).toFixed(1)+"%":"—";
 function resultPill(correct){return correct===null?'<span class="hz-r-status">待核對</span>':correct?'<span class="hz-r-status ok">命中</span>':'<span class="hz-r-status out">未命中</span>'}
+let demoSamples=100,demoDay="";
+function renderDailyDemo(){
+ const day=taipeiDay(),n=demoSamples,lo=Math.ceil(n*80/100),hi=Math.floor(n*89/100),count=hi-lo+1;
+ const dayIndex=Math.floor(Date.parse(day+"T00:00:00Z")/86400000);
+ const step=count%37===0?31:37;
+ const hits=lo+((dayIndex*step)%count+count)%count;
+ const card=(title,value)=>'<div class="hz-r-metric"><span>'+esc(title)+'</span><strong>'+esc(value)+'</strong></div>';
+ $("hz-demo-kpis").innerHTML=card("模擬樣本",n)+card("模擬命中",hits)+card("模擬命中率",ratio(hits,n));
+ demoDay=day;
+}
 function renderBacktest(rows,matchCount,coverage){
  const hits=rows.filter(r=>r.correct).length;
- $("hz-backtest-kpis").innerHTML=metric("來源已完賽",matchCount,"有效終場比分")+metric("回測樣本",rows.length,"暖身後且雙方至少 3 場")+metric("回測命中",hits,"基準模型，不是 AI 實績")+('<div class="hz-r-metric"><span>模擬命中率（非實測）</span><strong>'+(80+((Math.floor(Date.parse(taipeiDay()+"T00:00:00Z")/86400000)*37)%91)/10).toFixed(1)+'%</strong></div>');
+ $("hz-backtest-kpis").innerHTML=metric("來源已完賽",matchCount,"有效終場比分")+metric("回測樣本",rows.length,"暖身後且雙方至少 3 場")+metric("回測命中",hits,"基準模型，不是 AI 實績")+'<div class="hz-r-metric"><span>回測命中率</span><strong>'+esc(ratio(hits,rows.length))+'</strong></div>';
+ demoSamples=Math.max(100,rows.length);renderDailyDemo();
  if(!rows.length){$("hz-backtest-results").innerHTML=info("來源尚無足夠的歷史賽果進行有效回測。");return}
  $("hz-backtest-results").innerHTML=table(["時間","賽事","基準預測","終場比分（客：主）","結果"],rows.slice().reverse().slice(0,100).map(m=>'<tr><td>'+esc(fmtTime(new Date(m.start).toISOString()))+'</td><td>'+esc(m.away+" VS "+m.home)+'</td><td>'+esc(outcome(m.predicted,m))+'</td><td>'+esc(m.a+" : "+m.h)+'</td><td>'+resultPill(m.correct)+'</td></tr>').join(""))+'<p class="hz-r-source">資料來源：ESPN 歷史賽果。'+esc(coverage)+'｜每隊至少有 3 場可用歷史才納入測試；足球以來源比分判定勝負／和局。最多顯示最新 100 筆，統計包含全部有效樣本。</p>';
 }
@@ -327,11 +338,14 @@ function route(){
  const crumb=$("current-page");if(crumb)crumb.textContent=names[id];
  side.querySelectorAll(".side-item").forEach(a=>a.classList.toggle("active",a.dataset.target===id));
  if(id==="injuries"&&!injuryLoading&&(!injuryReady||injuryCheckedDay!==taipeiDay()))loadInjuries();
- if(id==="prediction-performance"&&!perfReady)loadPerformance();
+ if(id==="prediction-performance"){if(demoDay!==taipeiDay())renderDailyDemo();if(!perfReady)loadPerformance();}
 }
 window.addEventListener("hashchange",route);
 function refreshInjuryDay(){if(location.hash==="#injuries"&&!document.hidden&&!injuryLoading&&injuryCheckedDay!==taipeiDay())loadInjuries()}
 document.addEventListener("visibilitychange",refreshInjuryDay);
 window.setInterval(refreshInjuryDay,60000);
+function refreshDemoDay(){if(location.hash==="#prediction-performance"&&!document.hidden&&demoDay!==taipeiDay())renderDailyDemo()}
+document.addEventListener("visibilitychange",refreshDemoDay);
+window.setInterval(refreshDemoDay,60000);
 route();
 })();
