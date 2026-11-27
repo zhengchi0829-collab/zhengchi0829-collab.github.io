@@ -9,7 +9,8 @@ import threading
 import time
 
 PORT = int(os.environ.get("PORT", "10000"))
-MAX_BYTES = 4_000_000
+MAX_BYTES = 12_000_000
+MAX_CACHE_BYTES = 4_000_000
 CACHE_TTL = 900
 STALE_TTL = 3600
 ALLOWED_ORIGINS = {
@@ -75,15 +76,18 @@ def fetch_json(url):
             data = json.loads(body)
         with lock:
             stats["fetches"] += 1
-            cache[url] = (time.monotonic(), data)
+            if len(body) <= MAX_CACHE_BYTES:
+                cache[url] = (time.monotonic(), data)
             if len(cache) > 250:
                 oldest = min(cache, key=lambda k: cache[k][0])
                 cache.pop(oldest, None)
         return data, False
     except (HTTPError, URLError, TimeoutError, ValueError, OSError) as exc:
         # Only log host and error category; never leak request parameters or credentials.
-        print("source_failure host=%s type=%s http_status=%s" % (
-            urlparse(url).hostname, type(exc).__name__, getattr(exc, "code", "-")), flush=True)
+        reason = "response_too_large" if str(exc) == "Provider response too large" else (
+            "unexpected_status" if str(exc) == "Provider response was not 200" else type(exc).__name__)
+        print("source_failure host=%s type=%s http_status=%s reason=%s" % (
+            urlparse(url).hostname, type(exc).__name__, getattr(exc, "code", "-"), reason), flush=True)
         with lock:
             if entry and now - entry[0] < STALE_TTL:
                 return entry[1], True
@@ -95,7 +99,7 @@ class Handler(BaseHTTPRequestHandler):
         encoded = json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode()
         self.send_response(code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Cache-Control", "public, max-age=90")
+        self.send_header("Cache-Control", "public, max-age=90" if 200 <= code < 300 else "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         origin = self.headers.get("Origin", "")
         if origin in ALLOWED_ORIGINS:
